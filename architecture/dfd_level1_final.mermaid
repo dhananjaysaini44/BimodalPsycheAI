@@ -1,8 +1,7 @@
 flowchart TB
     User(("User"))
-    FB(("Firebase Auth"))
 
-    P1["1.0<br/>Authenticate User &amp;<br/>Check for Draft Session"]
+    P1["1.0<br/>Authenticate User (JWT)<br/>&amp; Check for Draft Session"]
     P2["2.0<br/>Capture Turn Response<br/>(text or audio, one question at a time)"]
     P3["3.0<br/>Score Turn Sentiment<br/>&amp; Check Crisis Signals"]
     P4["4.0<br/>Select Next Question<br/>(theme + phrasing variant)"]
@@ -20,13 +19,12 @@ flowchart TB
     D4[("D4 | Question Bank<br/>themes × phrasing variants")]
     D5[("D5 | Conversation Sessions<br/>turn history, sentiment trend, current theme<br/>status: draft | complete")]
 
-    User -->|"login request"| P1
-    P1 <-->|"verify token"| FB
-    P1 -->|"user record"| D1
-    D1 -->|"user profile"| P1
+    User -->|"login / register request"| P1
+    P1 -->|"verify / create user"| D1
+    D1 -->|"user profile / password hash"| P1
     P1 -->|"check draft status"| D5
     D5 -->|"draft found / none"| P1
-    P1 -->|"authenticated session<br/>+ resume/start choice"| User
+    P1 -->|"authenticated session (JWT)<br/>+ resume/start choice"| User
 
     User -->|"turn reply: text or audio"| P2
     P2 -->|"validated reply"| P3

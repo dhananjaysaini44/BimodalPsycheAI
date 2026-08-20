@@ -1,10 +1,7 @@
 flowchart LR
     User(("User"))
-    FB(("Firebase Auth"))
 
     System["0.0<br/>Multimodal Depression<br/>Detection System"]
 
-    User -->|"login credentials, resume/start choice,<br/>text input, audio recording"| System
-    System -->|"auth token request"| FB
-    FB -->|"verified identity"| System
+    User -->|"login/register credentials, resume/start choice,<br/>text input, audio recording"| System
     System -->|"next question, severity result,<br/>explanation, crisis resources, history"| User

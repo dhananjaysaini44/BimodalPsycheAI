@@ -2,19 +2,17 @@ sequenceDiagram
     actor U as User
     participant FE as Frontend (Chat UI)
     participant BE as Backend API
-    participant FB as Firebase Auth
     participant OR as ML Orchestrator<br/>(sentiment + crisis check)
     participant QB as Question Bank
     participant AN as Text/Voice Analysis<br/>+ Fusion + Explanation
     participant DL as Data Layer<br/>(encrypted DB, Storage, Session Store)
 
     U->>FE: Open app
-    FE->>BE: Login request
-    BE->>FB: Verify token
-    FB-->>BE: Verified identity
+    FE->>BE: Login / Register request (credentials)
+    BE->>BE: Validate credentials & generate custom JWT (Access/Refresh)
     BE->>DL: Check for draft session
     DL-->>BE: Draft found / none
-    BE-->>FE: Authenticated + resume/start choice
+    BE-->>FE: Authenticated (JWTs) + resume/start choice
 
     alt Draft session exists
         FE-->>U: Show "Resume Draft" banner

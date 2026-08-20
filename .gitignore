@@ -26,9 +26,6 @@ dist/
 __pycache__/
 *.pyc
 
-# PDF Documents (synopsis, papers)
-*.pdf
-
 # Allow tracking of diagrams/markdowns, but exclude specific outputs if needed
 # (Mermaid files .mermaid are allowed and tracked by default now that Architecture/ is not ignored)
 

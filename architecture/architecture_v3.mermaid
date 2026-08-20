@@ -12,11 +12,9 @@ flowchart TB
         History["Assessment History View"]
     end
 
-    Firebase[("Firebase Auth<br/>Google Sign-in")]
-
-    subgraph Backend["Backend — Node.js / Express"]
-        API["REST API<br/>/session/start, /session/turn, /session/complete,<br/>/session/draft, /session/resume/:id, /history"]
-        Verify["Verify Firebase token"]
+    subgraph Backend["Backend — Java / Spring Boot"]
+        API["REST API<br/>/api/auth/register, /api/auth/login, /api/auth/refresh,<br/>/session/start, /session/turn, /session/complete,<br/>/session/draft, /session/resume/{id}, /history"]
+        Verify["Verify Custom JWT<br/>(Spring Security Filter)"]
         Validate["Server-side input validation<br/>(re-check size/format/length)"]
         ErrHandle["Timeout + error handling<br/>on ML service calls"]
 
@@ -52,12 +50,12 @@ flowchart TB
     end
 
     QBank[("Question Bank<br/>7 themes × light/deep phrasing variants")]
-    DB[("Database (SQLite)<br/>users, assessments — encrypted at rest<br/>score, severity, explanation, model_version, timestamp, audio refs")]
+    DB[("Database (PostgreSQL / MySQL)<br/>credentials (hashed passwords), users, assessments — encrypted at rest<br/>score, severity, explanation, model_version, timestamp, audio refs")]
     SessionStore[("Conversation Sessions<br/>turn history, running sentiment trend, current theme<br/>status: draft | complete")]
     Storage[("Local filesystem<br/>audio files — encrypted at rest<br/>auto-deleted N days after scoring")]
 
     User --> Auth
-    Auth <--> Firebase
+    Auth <-->|"register / login"| API
     Auth --> Consent --> Chat
     SessionStore -.->|"check for draft on login"| Resume
     Resume -->|"resume: restore turn history"| Chat
