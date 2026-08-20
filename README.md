@@ -18,4 +18,4 @@ DFD, and sequence diagrams.
 
 ## Dataset
 Trained on E-DAIC (USC ICT) — see `ml-training/datasets/README.md`
-for access instructions. Dataset itself is never committed to this repo.
+for access instructions. Dataset itself is never committed to this repo
