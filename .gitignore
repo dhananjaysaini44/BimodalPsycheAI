@@ -1,0 +1,31 @@
+# Environment / secrets
+.env
+.env.local
+*.env
+
+# Databases
+*.db
+*.sqlite
+
+# Datasets — E-DAIC/MDDInterview must never be committed (data-use agreement)
+ml-training/datasets/*
+!ml-training/datasets/README.md
+
+# Trained model artifacts — too large for git, and may embed dataset traces
+ml-engine/models/*.pkl
+ml-engine/models/*.pt
+ml-engine/models/*.h5
+!ml-engine/models/README.md
+
+# Audio files (encrypted at rest, but shouldn't be in git regardless)
+backend/uploads/
+storage/
+
+node_modules/
+dist/
+__pycache__/
+*.pyc
+
+# Architecture / Design Specifications
+Architecture/
+
