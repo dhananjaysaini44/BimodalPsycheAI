@@ -1,0 +1,98 @@
+flowchart TB
+    User(["User"])
+
+    subgraph Frontend["Frontend — React / Next.js"]
+        Auth["Auth Screen"]
+        Consent["Consent / Disclaimer Screen<br/>(explains data use, not a clinical diagnosis)"]
+        Chat["Conversational UI<br/>(chat-style, one question at a time,<br/>reply by text or voice)"]
+        Resume["Resume Draft Banner<br/>('Continue where you left off')"]
+        Loading["Loading state<br/>(between turns + final analysis)"]
+        Results["Results Dashboard<br/>score + severity + explanation"]
+        Crisis["Crisis Resource Panel<br/>helpline + 'talk to a professional' message<br/>(interrupts flow immediately if triggered)"]
+        History["Assessment History View"]
+    end
+
+    Firebase[("Firebase Auth<br/>Google Sign-in")]
+
+    subgraph Backend["Backend — Node.js / Express"]
+        API["REST API<br/>/session/start, /session/turn, /session/complete,<br/>/session/draft, /session/resume/:id, /history"]
+        Verify["Verify Firebase token"]
+        Validate["Server-side input validation<br/>(re-check size/format/length)"]
+        ErrHandle["Timeout + error handling<br/>on ML service calls"]
+
+        subgraph Security["Security Layer"]
+            Encrypt["Encrypt/Decrypt<br/>AES-256-GCM<br/>(audio files + sensitive DB fields:<br/>transcript, explanation)"]
+            KeyMgmt["Key stored in environment variable<br/>(never in repo, never in DB)"]
+        end
+    end
+
+    subgraph MLEngine["ML Engine — Python FastAPI microservice"]
+        direction TB
+
+        subgraph Orchestrator["Conversation Orchestrator (per turn — fast)"]
+            TurnSentiment["Turn-level Sentiment Scorer<br/>MUST be fast (sub-second, in critical path)<br/>small classical model e.g. VADER / lightweight LogReg<br/>— NOT the full BERT/CNN classifier — steers flow only, not the final score"]
+            CrisisCheck["Crisis Keyword/Pattern Check<br/>(runs on every turn)"]
+            NextQ["Select Next Question<br/>(theme + phrasing variant<br/>based on running sentiment trend)"]
+        end
+
+        subgraph TextMod["Text Analysis Module (session-end — full)"]
+            TPre["Preprocess:<br/>tokenize, stopword removal<br/>(full conversation transcript)"]
+            TFeat["Features:<br/>sentiment + keyword detection"]
+            TModel["Classifier<br/>(LogReg / LSTM / BERT)"]
+            TExplain["Top contributing signals<br/>(e.g. negative sentiment flag)"]
+        end
+        subgraph VoiceMod["Voice Analysis Module (session-end — full)"]
+            VPre["Preprocess:<br/>noise reduction, normalize<br/>(all turn audio clips)"]
+            VFeat["Features:<br/>MFCC, pitch, energy, speech rate<br/>(extracted via librosa)"]
+            VModel["Classifier (CNN)"]
+            VExplain["Top contributing signals<br/>(e.g. reduced pitch variation)"]
+        end
+        Fusion["Fusion Module<br/>weighted average → probability → severity (Low/Mod/High)"]
+        ExplainMerge["Explanation Builder<br/>merges top text + voice signals into plain-language summary"]
+    end
+
+    QBank[("Question Bank<br/>7 themes × light/deep phrasing variants")]
+    DB[("Database (SQLite)<br/>users, assessments — encrypted at rest<br/>score, severity, explanation, model_version, timestamp, audio refs")]
+    SessionStore[("Conversation Sessions<br/>turn history, running sentiment trend, current theme<br/>status: draft | complete")]
+    Storage[("Local filesystem<br/>audio files — encrypted at rest<br/>auto-deleted N days after scoring")]
+
+    User --> Auth
+    Auth <--> Firebase
+    Auth --> Consent --> Chat
+    SessionStore -.->|"check for draft on login"| Resume
+    Resume -->|"resume: restore turn history"| Chat
+    Resume -->|"start fresh instead"| Chat
+
+    Chat -->|"turn reply: text or audio<br/>(HTTPS/TLS)"| API
+    API --> Verify --> Validate
+    Validate -->|"turn reply"| Orchestrator
+
+    TurnSentiment --> CrisisCheck
+    CrisisCheck -->|"risk detected"| API
+    API -.immediate.-> Crisis
+    CrisisCheck -->|"no risk"| NextQ
+    NextQ -->|"read themes/variants"| QBank
+    NextQ -->|"update session state"| SessionStore
+    NextQ -->|"next question"| API
+    API --> Chat
+    Chat -.shows.-> Loading
+    KeyMgmt -.provides key.-> Encrypt
+    Validate -->|"store turn audio"| Encrypt
+    Encrypt -->|"encrypted audio"| Storage
+
+    SessionStore -->|"conversation complete:<br/>full transcript + all audio"| TextMod
+    SessionStore -->|"full transcript + all audio"| VoiceMod
+    TPre --> TFeat --> TModel --> TExplain --> Fusion
+    VPre --> VFeat --> VModel --> VExplain --> Fusion
+    TExplain --> ExplainMerge
+    VExplain --> ExplainMerge
+    Fusion --> ExplainMerge
+    ExplainMerge -->|"final result + explanation"| ErrHandle
+    ErrHandle -->|success| API
+    ErrHandle -.timeout / failure.-> API
+    API -->|"user record, sensitive fields"| Encrypt
+    Encrypt -->|"encrypted record"| DB
+    API -->|"audio paths only"| Storage
+    DB -.-> Storage
+    API -->|"access scoped to authenticated user_id"| Results
+    API -->|"access scoped to authenticated user_id"| History

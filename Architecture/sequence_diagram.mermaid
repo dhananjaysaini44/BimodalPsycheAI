@@ -1,0 +1,73 @@
+sequenceDiagram
+    actor U as User
+    participant FE as Frontend (Chat UI)
+    participant BE as Backend API
+    participant FB as Firebase Auth
+    participant OR as ML Orchestrator<br/>(sentiment + crisis check)
+    participant QB as Question Bank
+    participant AN as Text/Voice Analysis<br/>+ Fusion + Explanation
+    participant DL as Data Layer<br/>(encrypted DB, Storage, Session Store)
+
+    U->>FE: Open app
+    FE->>BE: Login request
+    BE->>FB: Verify token
+    FB-->>BE: Verified identity
+    BE->>DL: Check for draft session
+    DL-->>BE: Draft found / none
+    BE-->>FE: Authenticated + resume/start choice
+
+    alt Draft session exists
+        FE-->>U: Show "Resume Draft" banner
+        U->>FE: Choose resume or start fresh
+    end
+
+    FE-->>U: Show consent screen (first time only)
+    U->>FE: Accept and begin
+
+    loop Until conversation complete
+        FE->>BE: Turn reply (text or audio)
+        BE->>BE: Server-side validation
+        BE->>OR: Forward turn
+        OR->>OR: Score turn sentiment (fast model)
+        OR->>OR: Check crisis keywords/patterns
+
+        alt Risk detected
+            OR-->>BE: Risk flag
+            BE-->>FE: Immediate crisis resources
+            FE-->>U: Show Crisis Resource Panel
+            Note over FE,U: Flow interrupts here —<br/>conversation paused, not lost
+        else No risk
+            OR->>QB: Read theme/phrasing variant<br/>(based on sentiment trend)
+            QB-->>OR: Next question
+            OR->>DL: Encrypt and store turn<br/>(audio + updated session state)
+            OR-->>BE: Next question
+            BE-->>FE: Next question
+            FE-->>U: Show next question
+        end
+    end
+
+    BE->>DL: Mark session complete,<br/>fetch full transcript + audio refs
+    DL-->>BE: Full transcript + audio
+
+    par Text analysis
+        BE->>AN: Analyze full text
+        AN-->>BE: text_score + top signals
+    and Voice analysis
+        BE->>AN: Analyze full voice (librosa features)
+        AN-->>BE: voice_score + top signals
+    end
+
+    BE->>AN: Fuse scores → severity
+    AN-->>BE: severity + probability
+    BE->>AN: Generate explanation
+    AN-->>BE: plain-language explanation
+
+    BE->>DL: Encrypt and store assessment<br/>(score, severity, explanation, model_version)
+    DL-->>BE: Stored
+
+    BE-->>FE: Final results
+    FE-->>U: Show Results Dashboard
+
+    alt Severity = High
+        FE-->>U: Show Crisis Resource Panel
+    end

@@ -1,0 +1,58 @@
+flowchart TB
+    User(("User"))
+    FB(("Firebase Auth"))
+
+    P1["1.0<br/>Authenticate User &amp;<br/>Check for Draft Session"]
+    P2["2.0<br/>Capture Turn Response<br/>(text or audio, one question at a time)"]
+    P3["3.0<br/>Score Turn Sentiment<br/>&amp; Check Crisis Signals"]
+    P4["4.0<br/>Select Next Question<br/>(theme + phrasing variant)"]
+    P5["5.0<br/>Encrypt &amp; Store Turn Data<br/>(AES-256-GCM)"]
+    P6["6.0<br/>Analyze Full Text<br/>(session-end)"]
+    P7["7.0<br/>Analyze Full Voice<br/>(session-end, via librosa)"]
+    P8["8.0<br/>Fuse Scores &amp;<br/>Classify Severity"]
+    P9["9.0<br/>Generate Explanation"]
+    P10["10.0<br/>Encrypt &amp; Store Assessment"]
+    P11["11.0<br/>Deliver Results<br/>(+ immediate crisis resources if triggered)"]
+
+    D1[("D1 | Users")]
+    D2[("D2 | Assessments — encrypted<br/>score, severity, explanation,<br/>model_version, timestamp")]
+    D3[("D3 | Audio Files — encrypted<br/>(filesystem, auto-deleted N days post-scoring)")]
+    D4[("D4 | Question Bank<br/>themes × phrasing variants")]
+    D5[("D5 | Conversation Sessions<br/>turn history, sentiment trend, current theme<br/>status: draft | complete")]
+
+    User -->|"login request"| P1
+    P1 <-->|"verify token"| FB
+    P1 -->|"user record"| D1
+    D1 -->|"user profile"| P1
+    P1 -->|"check draft status"| D5
+    D5 -->|"draft found / none"| P1
+    P1 -->|"authenticated session<br/>+ resume/start choice"| User
+
+    User -->|"turn reply: text or audio"| P2
+    P2 -->|"validated reply"| P3
+
+    P3 -->|"sentiment score"| P4
+    P3 -->|"risk flag (if any)"| P11
+    P4 -->|"read theme/variant"| D4
+    P4 -->|"next question"| User
+
+    P2 -->|"audio clip"| P5
+    P4 -->|"updated turn history + trend"| P5
+    P5 -->|"encrypted audio"| D3
+    P5 -->|"encrypted session state"| D5
+
+    D5 -->|"conversation complete:<br/>full transcript"| P6
+    D5 -->|"conversation complete:<br/>all audio refs"| P7
+    P6 -->|"text_score + text signals"| P8
+    P7 -->|"voice_score + voice signals"| P8
+
+    P8 -->|"final score + severity"| P9
+    P6 -->|"top text signals"| P9
+    P7 -->|"top voice signals"| P9
+
+    P9 -->|"score, severity, explanation"| P10
+    P10 -->|"write encrypted record"| D2
+    D2 -->|"past assessments<br/>(scoped to user_id)"| P11
+
+    P9 -->|"result package"| P11
+    P11 -->|"severity, explanation, history, crisis resources"| User
