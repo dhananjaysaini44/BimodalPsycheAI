@@ -7,25 +7,47 @@
 *.db
 *.sqlite
 
-# Datasets — E-DAIC/MDDInterview must never be committed (data-use agreement)
+# Java / Maven build output
+backend/target/
+target/
+*.class
+
+# Datasets — E-DAIC / MDDInterview must never be committed (data-use agreement)
 ml-training/datasets/*
 !ml-training/datasets/README.md
 
-# Trained model artifacts — too large for git, and may embed dataset traces
+# Private USC E-DAIC Data (Restricted under USC ICT Data-Use Agreement)
+ml-training/edaic-woz/
+ml-training/edaic_woz/
+
+# Generated Dataset & Experiment Artifacts (Heavy local files)
+ml-training/dataset/
+ml-training/outputs/
+ml-training/**/.cache/
+ml-training/**/.ipynb_checkpoints/
+ml-training/**/__pycache__/
+
+# Checkpoints and models — too large for git
+ml-training/checkpoints/
 ml-engine/models/*.pkl
 ml-engine/models/*.pt
 ml-engine/models/*.h5
+ml-engine/models/*.onnx
+ml-engine/models/*.bin
 !ml-engine/models/README.md
 
 # Audio files (encrypted at rest, but shouldn't be in git regardless)
 backend/uploads/
 storage/
 
+# Python & Node dependencies and build artifacts
 node_modules/
 dist/
 __pycache__/
 *.pyc
+*.pyo
+.pytest_cache/
+.ipynb_checkpoints/
 
-# Allow tracking of diagrams/markdowns, but exclude specific outputs if needed
-# (Mermaid files .mermaid are allowed and tracked by default now that Architecture/ is not ignored)
-
+# Logs
+*.log
