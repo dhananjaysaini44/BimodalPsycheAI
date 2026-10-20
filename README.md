@@ -133,23 +133,45 @@ BimodalPsycheAI/
 │   ├── dataset/                               # [GIT-IGNORED] Generated feature tables (mean, std, BoAW)
 │   ├── datasets/
 │   │   └── README.md                          # Access guidelines for clinical datasets
-│   ├── outputs/                               # [GIT-IGNORED] Repeated-CV logs, ROC/PR curves, predictions
+│   ├── outputs/                               # Benchmark logs, evaluation metrics, and predictions
+│   │   ├── classical_controlled/              # Phase 9: Controlled benchmark outputs (mean_std protocol)
+│   │   ├── classical_final_test_v1/           # Phase 10: Official Test release, 9 serialized models & manifest
+│   │   ├── classification/                    # Historical classification exploration outputs & curves
+│   │   └── regression/                        # Historical regression exploration outputs & curves
 │   └── code/                                  # Modular ML pipeline source code (Version Controlled)
-│       ├── config.py                          # Dynamic path auto-detection for datasets and outputs
-│       ├── dataset_generation.py              # Feature pooling & master dataset assembler
-│       ├── feature_extraction.py              # Acoustic Low-Level Descriptor (LLD) parsers
-│       ├── pooling.py                         # Temporal pooling primitives (mean, std, min, max)
-│       ├── split_loader.py                    # Official train/dev/test split loaders & CV partitioners
-│       ├── run_repeated_cv.py                 # Repeated cross-validation stability protocol
-│       ├── summarize_models.py                # Performance summary and LaTeX/Markdown reporter
-│       ├── evaluation/                        # Classification & regression evaluators
-│       ├── experiments/                       # Experiment runners and model architecture registry
+│       ├── core/                              # Central configurations and global project paths
+│       │   └── config.py                      # Canonical paths, random seed, and feature specifications
+│       ├── data/                              # Data loading, temporal pooling, and feature extraction
+│       │   ├── split_loader.py                # Leakage-safe official split loader (Train=163, Dev=56, Test=56)
+│       │   ├── pooling.py                     # Temporal pooling functions (mean, std, min, max, mean_std)
+│       │   ├── feature_extraction.py          # Acoustic LLD and BoAW feature extraction routines
+│       │   └── dataset_generation.py          # Generates 24 pooled representation datasets + manifests
+│       ├── evaluation/                        # Model evaluators and validation splits
+│       │   ├── classification_evaluator.py    # Stratified CV & Dev classification evaluator
+│       │   ├── regression_evaluator.py        # Regression evaluator with CCC, RMSE, MAE, Pearson
+│       │   └── cross_validation.py            # Cross-validation fold partitioners
+│       ├── experiments/                       # Benchmark runners and experiment entry points
+│       │   ├── run_classical_controlled_benchmark.py # Phase 9: 4-representation controlled benchmark
+│       │   ├── run_classical_final_test.py    # Phase 10: Official test evaluation & model serialization
+│       │   ├── run_repeated_cv.py             # 50-fold repeated CV stability benchmark (classification)
+│       │   ├── run_repeated_cv_regression.py  # 50-fold repeated CV stability benchmark (regression)
+│       │   ├── run_classification.py          # Broad classical classification exploration
+│       │   └── run_regression.py              # Broad classical regression exploration
 │       ├── models/                            # Classification and regression model architectures
-│       ├── utils/                             # Metrics (CCC, RMSE, MAE, F1, Balanced Accuracy)
-│       ├── visualization/                     # Heatmap, confusion matrix, ROC, and PR curve generation
-│       ├── Baseline_models.ipynb              # Baseline models exploratory notebook
-│       ├── Validation_data.ipynb              # Validation data pipeline notebook
-│       └── test_*.py                          # Complete 33-test unit test suite
+│       │   ├── classification_models.py       # LinearSVC, LogisticRegression, RF, ExtraTrees, XGBoost
+│       │   └── regression_models.py           # Ridge, Lasso, ElasticNet, SVR, KNN, RF, ExtraTrees, XGBoost
+│       ├── notebooks/                         # Jupyter exploration and prototyping notebooks
+│       ├── scripts/                           # Standalone utility and reporting scripts
+│       │   └── summarize_models.py            # Summary reporter for classification and regression models
+│       ├── audits/                            # Forensic validation scripts & audit test harnesses
+│       │   ├── audit_classical_controlled.py  # 63-check verification of controlled benchmark
+│       │   ├── audit_phases1_to_4.py          # Split integrity, metric verification & fold stability
+│       │   ├── audit_regression_forensic.py   # Regression benchmark integrity & prediction bounds
+│       │   └── audit_rf_anomaly.py            # Random Forest zero-positive probability diagnosis
+│       ├── tests/                             # Automated unit and integration test suite (37 tests)
+│       ├── utils/                             # Shared metric implementations (Lin's CCC, F1, Balanced Acc)
+│       ├── visualization/                     # ROC curves, PR curves, and confusion matrix visualizers
+│       └── [Compatibility Shims]              # Root re-exports (config.py, split_loader.py, pooling.py, etc.)
 │
 └── docs/                                      # System Specifications & Schemas
     ├── data-use-agreement/                    # Clinical dataset compliance notes
@@ -238,20 +260,23 @@ cd ml-training
 # Install ML research dependencies
 pip install -r requirements.txt
 
-# Run the complete test suite (33 tests covering split loaders, feature extractors, pooling, and metrics)
-python -m unittest discover -s code -p "test_*.py"
+# Run the complete test suite (37 tests covering split loaders, feature extractors, pooling, and metrics)
+python -m unittest discover -s code/tests -p "test_*.py"
+
+# Run controlled classical benchmark audit (63 automated integrity checks)
+python code/audits/audit_classical_controlled.py
 
 # Generate pooled feature datasets from raw features
-python code/dataset_generation.py
+python code/data/dataset_generation.py
 
-# Run classification benchmark across all feature representations
-python code/experiments/run_classification.py
+# Run the controlled classical benchmark (mean_std pooling across 4 acoustic representations)
+python code/experiments/run_classical_controlled_benchmark.py
 
-# Run regression benchmark targeting continuous PHQ scores
-python code/experiments/run_regression.py
+# Run the official test set evaluation & save fitted models (Phase 10)
+python code/experiments/run_classical_final_test.py
 
-# Run 10-repeat 5-fold cross-validation stability protocol
-python code/run_repeated_cv.py
+# Summarize model benchmark performance across classification and regression
+python code/scripts/summarize_models.py
 ```
 
 ---
