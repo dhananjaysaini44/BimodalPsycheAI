@@ -21,12 +21,18 @@ from sklearn.metrics import (
     balanced_accuracy_score, roc_auc_score, average_precision_score, confusion_matrix
 )
 
+import sys
+
 # Project paths
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+CODE_DIR = os.path.join(BASE_DIR, "code")
+if CODE_DIR not in sys.path:
+    sys.path.insert(0, CODE_DIR)
+
+from config import DATASET_DIR, LABELS_DIR
+
 OUTPUTS_DIR = os.path.join(BASE_DIR, "outputs", "classification")
 AUDIT_DIR = os.path.join(OUTPUTS_DIR, "audit")
-DATASET_DIR = os.path.join(BASE_DIR, "dataset")
-LABELS_DIR = os.path.join(BASE_DIR, "labels")
 
 os.makedirs(AUDIT_DIR, exist_ok=True)
 

@@ -16,8 +16,8 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-# Add current directory to path
-sys.path.insert(0, str(Path(__file__).resolve().parent))
+# Add code root directory to path
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from config import DATA_DIR, CACHE_DIR, FEATURE_REGISTRY
 from feature_extraction import (

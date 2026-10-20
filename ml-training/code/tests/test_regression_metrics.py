@@ -2,8 +2,13 @@
 Unit tests for Regression Metrics (CCC, RMSE, MAE, R^2).
 """
 
+import sys
 import unittest
+from pathlib import Path
 import numpy as np
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
 from utils.metrics import concordance_correlation_coefficient, compute_regression_metrics
 
 class TestRegressionMetrics(unittest.TestCase):

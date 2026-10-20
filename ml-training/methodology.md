@@ -434,3 +434,81 @@ Implemented in [`code/utils/metrics.py`](file:///e:/EDAIC-WOZ/code/utils/metrics
 1. **Slope Agreement vs. Error Shrinkage**: `Ridge` and `LinearRegression` excel at slope tracking (capturing relative severity across participants, driving high CCC $\approx 0.22 - 0.28$), whereas `ElasticNet` and `RandomForest` minimize absolute error by shrinking predictions toward the prior mean.
 2. **Collinearity and Out-of-Range Predictions**: Exactly 99 of 480 prediction files contain out-of-range predictions ($< 0.0$ or $> 24.0$), confined exclusively to linear models on high-dimensional composite spaces (`mean_std_min_max` with 156–400 features). Tree models and regularized shrinkage models produced zero out-of-range predictions.
 3. **Domain Shift Caveat**: The training and development splits represent primarily Wizard-of-Oz interviews (82–88%), whereas the official test split consists of 100% autonomous AI conversational interviews.
+
+---
+
+## 12. Phase 9: Controlled Classical Benchmark (`mean_std` Standardization)
+
+### 12.1 Purpose & Methodological Motivation
+The earlier exploratory benchmark in [`model_selection.md`](file:///e:/Projects/BimodalPsycheAI/ml-training/model_selection.md) investigated an unconstrained cross-product of 24 pooling strategies and 10 algorithms. While valuable for broad architectural discovery, evaluating representations under varying pooling strategies (e.g. comparing `mean` on one representation against `std` or `max` on another) conflates the intrinsic representational capacity of the acoustic features with pooling idiosyncrasies.
+
+To isolate representation quality under identical conditions, Phase 9 established a strictly controlled benchmark enforcing:
+1. **Single Standardized Pooling Strategy**: `mean_std` across all evaluated representations.
+2. **Fixed Baseline Models**: `LinearSVC` with standardized scaling for classification (`PHQ_Binary`); `Ridge` (with scaling) and `XGBoost` (without scaling) for continuous regression (`PHQ_Score`).
+3. **Predefined Identical Fold Splits**: Participant fold assignments generated deterministically from seed `42` and shared across all configurations within each task.
+4. **Complete Separation from Historical Data**: All artifacts written to dedicated isolation directories without modifying historical benchmark outputs.
+
+### 12.2 Controlled Classification Development Findings (`PHQ_Binary`)
+Target: Binary depression status ($\text{PHQ} \ge 10$). Evaluated via 5-fold Stratified CV, 50-fold Repeated Stratified CV ($10 \text{ repeats} \times 5 \text{ folds}$), and the official Development split ($n=56$):
+
+| Configuration | Dimensions | Pooled OOF F1 | Pooled OOF balanced accuracy | OOF AUC | 5-fold F1 mean ± SD | Repeated-CV F1 mean ± SD | Dev F1 | Dev balanced accuracy | Dev AUC |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| `raw_egemaps__mean_std__linear_svc` | 46 | 0.1333 | 0.4787 | 0.4648 | 0.1338 ± 0.0754 | 0.1734 ± 0.1380 | 0.2222 | 0.5379 | 0.5057 |
+| `raw_mfcc__mean_std__linear_svc` | 78 | 0.2716 | 0.5177 | 0.5500 | 0.2655 ± 0.2475 | 0.2445 ± 0.1402 | **0.4000** | **0.6174** | **0.6761** |
+| `boaw_egemaps__mean_std__linear_svc` | 200 | 0.2857 | 0.5233 | 0.5408 | 0.2815 ± 0.1217 | **0.2808 ± 0.1075** | 0.0714 | 0.3712 | 0.3996 |
+| `boaw_mfcc__mean_std__linear_svc` | 200 | **0.2889** | 0.5169 | 0.5324 | **0.2865 ± 0.0847** | 0.2334 ± 0.1228 | 0.2857 | 0.5303 | 0.5985 |
+
+### 12.3 Controlled Regression Development Findings (`PHQ_Score`)
+Target: Continuous PHQ-8 score (0–24). Primary metric: Concordance Correlation Coefficient (CCC); Secondary: RMSE, MAE, $R^2$. Predictions raw and unclipped:
+
+| Configuration | Dimensions | Pooled OOF CCC | OOF RMSE | OOF MAE | OOF R² | 5-fold CCC mean ± SD | Repeated-CV CCC mean ± SD | Dev CCC | Dev RMSE | Dev MAE | Dev R² |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| `raw_egemaps__mean_std__ridge` | 46 | 0.0733 | 6.7631 | 5.3663 | -0.2317 | 0.0937 ± 0.0993 | 0.0384 ± 0.1103 | 0.0273 | 6.3981 | 5.2559 | -0.2767 |
+| `raw_mfcc__mean_std__ridge` | 78 | **0.2174** | 7.2352 | 5.8314 | -0.4097 | **0.2310 ± 0.1160** | **0.1434 ± 0.1643** | **0.2844** | 6.2167 | 5.1740 | -0.2053 |
+| `boaw_egemaps__mean_std__ridge` | 200 | -0.0171 | 20.1402 | 8.3621 | -9.9235 | 0.0593 ± 0.1837 | 0.0676 ± 0.1347 | -0.0354 | 10.1507 | 8.6676 | -2.2135 |
+| `boaw_mfcc__mean_std__ridge` | 200 | -0.0171 | 11.2445 | 8.9808 | -2.4050 | -0.0204 ± 0.2111 | -0.0139 ± 0.1591 | 0.0016 | 10.1406 | 7.9851 | -2.2071 |
+| `boaw_mfcc__mean_std__xgboost` | 200 | 0.0850 | 6.4314 | 5.1808 | -0.1139 | 0.0982 ± 0.0724 | 0.1163 ± 0.1053 | 0.1613 | **5.7172** | **4.6654** | -0.0194 |
+| `reference_baseline__raw_mfcc__mean_std__dummy` | 78 | -0.0083 | **6.1219** | **5.0984** | -0.0093 | 0 ± 0 | 0 ± 0 | approximately 0 | **5.6629** | **4.7433** | -0.0001 |
+
+### 12.4 Scientific & Methodological Interpretation
+1. **Raw MFCC Generalization Superiority**: Raw MFCC with `mean_std` was the strongest overall candidate in the controlled classification development results, based on its reported Dev $F_1 = 0.4000$ and Dev ROC-AUC $= 0.6761$. In regression, `raw_mfcc__mean_std__ridge` was the strongest controlled Ridge regression candidate, achieving the highest Dev CCC ($0.2844$) and reproducing the peak historical slope-tracking performance.
+2. **BoAW Codebook Collinearity & Overfitting**: Under CV, Bag-of-Audio-Words representations appeared competitive ($F_1 \approx 0.28 - 0.29$). However, on held-out development data, `boaw_egemaps__mean_std__linear_svc` collapsed to Dev $F_1 = 0.0714$ and Dev AUC $= 0.3996$. In regression, Ridge failed completely on 200-dimensional BoAW histograms (RMSE $20.14$ and $11.24$) due to severe multi-collinearity among adjacent codebook bins.
+3. **XGBoost Non-Linear Regularization on BoAW**: XGBoost on BoAW MFCC achieved substantially better regression RMSE ($5.7172$ vs. $10.1406$) and CCC ($0.1613$ vs. $0.0016$) than Ridge on the same representation in the reported controlled results. However, its CCC remained lower than raw MFCC with Ridge ($0.1613$ vs. $0.2844$).
+4. **Interpretation of Negative $R^2$**: Negative $R^2$ values indicate performance below a horizontal mean-prediction reference under the squared-loss objective. They do not mean that all other metrics are interchangeable or that the model possesses zero predictive signal; linear models preserving variance across high dimensions can accurately rank participant severity (yielding positive CCC) while incurring quadratic penalties on distribution tails.
+5. **Freeze of Model Configurations**: Development findings motivated the final fixed set of nine release configurations. The official test performance must strictly remain a one-time evaluation and must never be used to retune models or revise hyperparameters.
+
+---
+
+## 13. Phase 10: Official Test Benchmark Release & Final Evaluation (`classical_final_test_v1`)
+
+### 13.1 Protocol: Train + Dev Fitting & One-Time Test Evaluation
+Following protocol freezing, all nine selected classical configurations were fitted on the combined official training and development splits ($\text{Train} + \text{Dev}$, $n=219$ participants: 163 train + 56 dev) and evaluated in a strictly blinded, one-time execution against the official E-DAIC Test split ($n=56$ participants, IDs 600–718).
+
+The complete release package, including serialized pipelines, participant predictions, configuration JSONs, manifest, and logs, is archived in [`outputs/classical_final_test_v1/`](file:///e:/Projects/BimodalPsycheAI/ml-training/outputs/classical_final_test_v1).
+
+### 13.2 Final Classification Results on Official Test Split (`PHQ_Binary`)
+*Evaluated on official Test ($n=56$: 39 non-depressed, 17 depressed; positive prevalence 30.36%). Threshold $\tau = 0.0$ on `decision_function`.*
+
+| Configuration ID | Feature Dim | Test F1 | Test Balanced Acc | Test ROC-AUC | Test Precision | Test Recall | Test Accuracy | Confusion Matrix (TN, FP, FN, TP) |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| `raw_egemaps__mean_std__linear_svc` | 46 | 0.1000 | 0.5038 | 0.6742 | 0.3333 | 0.0588 | 0.6786 | $\text{TN}=37, \text{FP}=2, \text{FN}=16, \text{TP}=1$ |
+| `raw_mfcc__mean_std__linear_svc` | 78 | **0.4848** | **0.6327** | **0.6908** | **0.5000** | 0.4706 | **0.6964** | $\text{TN}=31, \text{FP}=8, \text{FN}=9, \text{TP}=8$ |
+| `boaw_egemaps__mean_std__linear_svc` | 200 | 0.2941 | 0.4932 | 0.5339 | 0.2941 | 0.2941 | 0.5714 | $\text{TN}=27, \text{FP}=12, \text{FN}=12, \text{TP}=5$ |
+| `boaw_mfcc__mean_std__linear_svc` | 200 | 0.4186 | 0.5468 | 0.5113 | 0.3462 | **0.5294** | 0.5536 | $\text{TN}=22, \text{FP}=17, \text{FN}=8, \text{TP}=9$ |
+
+### 13.3 Final Regression Results on Official Test Split (`PHQ_Score`)
+*Evaluated on official Test ($n=56$: Mean = 6.89, Std = 6.20, Range 0–24). Raw unclipped predictions.*
+
+| Configuration ID | Feature Dim | Test CCC | Test RMSE | Test MAE | Test R² | Model Runtime (s) |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: |
+| `raw_egemaps__mean_std__ridge` | 46 | 0.1011 | **6.5016** | 5.4618 | **-0.0400** | 0.05 |
+| `raw_mfcc__mean_std__ridge` | 78 | 0.1310 | 7.1662 | 5.6614 | -0.2635 | 0.05 |
+| `boaw_egemaps__mean_std__ridge` | 200 | 0.2017 | 8.1365 | 6.8295 | -0.6288 | 0.05 |
+| `boaw_mfcc__mean_std__ridge` | 200 | **0.2827** | 7.5342 | 6.0218 | -0.3966 | 0.05 |
+| `boaw_mfcc__mean_std__xgboost` | 200 | 0.0900 | 6.7700 | **5.3092** | -0.1276 | 0.35 |
+
+### 13.4 Cross-Condition Generalization & Domain Shift Analysis
+1. **Classification Confirmation**: `raw_mfcc__mean_std__linear_svc` established itself as the decisive classical classification champion, achieving **Test $F_1 = 0.4848$**, **Test Balanced Accuracy = $0.6327$**, and **Test ROC-AUC = $0.6908$**. The model generalized robustly despite the 100% autonomous Ellie interaction regime, detecting 8 of 17 depressed cases with 50% precision.
+2. **BoAW Codebook Transfer on Full Sample Size**: With training sample size expanded to $n=219$ ($\text{Train} + \text{Dev}$), `boaw_mfcc__mean_std__ridge` attained **Test CCC = $0.2827$**, outperforming raw MFCC Ridge ($0.1310$) on the autonomous test split. The additional 56 development participants provided the density necessary to regularize the 200-dimensional histogram space.
+3. **Error Minimization vs. Ranking**: While BoAW MFCC Ridge achieved the highest concordance slope ($\text{CCC} = 0.2827$), tree-based `boaw_mfcc__mean_std__xgboost` achieved the lowest absolute error ($\text{MAE} = 5.3092$, $\text{RMSE} = 6.7700$), confirming the fundamental clinical trade-off between slope fidelity and conservative error shrinkage.
+4. **Model Verification & Release Artifacts**: All nine models were serialized via `joblib` into `outputs/classical_final_test_v1/models/`. Every saved artifact was programmatically reloaded and validated to produce zero discrepancy ($\text{diff} < 10^{-7}$) against in-memory predictions, providing a certified foundation for downstream multimodal fusion.

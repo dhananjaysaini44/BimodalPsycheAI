@@ -20,7 +20,7 @@ import numpy as np
 import pandas as pd
 
 # Add code directory to path
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, os.path.join(BASE_DIR, "code"))
 
 from config import RANDOM_SEED, TARGET_REGRESSION, DATASET_DIR, LABELS_DIR

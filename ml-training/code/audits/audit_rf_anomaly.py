@@ -13,7 +13,7 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 OUTPUTS_DIR = os.path.join(BASE_DIR, "outputs", "classification")
 AUDIT_DIR = os.path.join(OUTPUTS_DIR, "audit")
 PREDS_DIR = os.path.join(OUTPUTS_DIR, "predictions")
