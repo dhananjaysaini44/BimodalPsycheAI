@@ -17,6 +17,7 @@ elif (ROOT_DIR / "edaic_woz" / "data").exists():
 else:
     DATA_DIR = ROOT_DIR / "data"
 DATASET_DIR = ROOT_DIR / "dataset"
+DEEP_FEATURES_DIR = DATASET_DIR / "deep_features_v1"
 if (ROOT_DIR / "edaic-woz" / "labels").exists():
     LABELS_DIR = ROOT_DIR / "edaic-woz" / "labels"
 elif (ROOT_DIR / "edaic_woz" / "labels").exists():
@@ -111,6 +112,24 @@ FEATURE_REGISTRY: Dict[str, FeatureSpec] = {
         metadata_cols_to_drop=2,  # 'unknown', timestamp
         sampling_rate_hz=10.0,
         description="Bag-of-Audio-Words quantized MFCC codebook histogram (100 bins at 10 Hz)",
+    ),
+    "vgg16": FeatureSpec(
+        name="vgg16",
+        file_pattern="{pid}_vgg16.csv",
+        has_header=True,
+        expected_numeric_dim=4096,
+        metadata_cols_to_drop=2,  # name, timeStamp
+        sampling_rate_hz=1.0,
+        description="VGG16 deep audio feature embeddings (4096 features per window)",
+    ),
+    "densenet201": FeatureSpec(
+        name="densenet201",
+        file_pattern="{pid}_densenet201.csv",
+        has_header=True,
+        expected_numeric_dim=1920,
+        metadata_cols_to_drop=2,  # name, timeStamp
+        sampling_rate_hz=1.0,
+        description="DenseNet201 deep audio feature embeddings (1920 features per window)",
     ),
 }
 

@@ -183,8 +183,9 @@ def load_master_feature_dataset(
     dataset_dir: Path = DATASET_DIR,
 ) -> pd.DataFrame:
     """
-    Loads one of the 24 master pooled feature datasets.
-    File path: dataset/{representation}/{pooling_strategy}.csv
+    Loads a master pooled feature dataset.
+    Supports classical representations under dataset/{representation}/{pooling_strategy}.csv
+    and deep representations under dataset/deep_features_v1/pooled/{representation}__{pooling_strategy}.csv.
     """
     if representation not in FEATURE_REGISTRY:
         raise ValueError(
@@ -195,10 +196,22 @@ def load_master_feature_dataset(
             f"Unknown pooling strategy '{pooling_strategy}'. Valid options: {VALID_POOLING_STRATEGIES}"
         )
 
-    csv_path = dataset_dir / representation / f"{pooling_strategy}.csv"
-    if not csv_path.exists():
+    candidate_paths = [
+        dataset_dir / "deep_features_v1" / "pooled" / f"{representation}__{pooling_strategy}.csv",
+        dataset_dir / representation / f"{pooling_strategy}.csv",
+        dataset_dir / f"{representation}__{pooling_strategy}.csv",
+    ]
+
+    csv_path = None
+    for p in candidate_paths:
+        if p.exists():
+            csv_path = p
+            break
+
+    if csv_path is None:
         raise FileNotFoundError(
-            f"Pooled dataset not found at {csv_path}. Run dataset generation first."
+            f"Pooled dataset not found for representation '{representation}' and pooling '{pooling_strategy}'. "
+            f"Checked paths: {[str(p) for p in candidate_paths]}. Run dataset generation first."
         )
 
     df = pd.read_csv(csv_path)

@@ -39,6 +39,10 @@ try:
         generate_representation_datasets,
         generate_all_datasets,
     )
+    from data.deep_dataset_builder import (
+        build_all_deep_pooled_datasets,
+        process_participant_deep_features,
+    )
 except ImportError:
     from split_loader import (
         SplitIntegrityError,
@@ -76,6 +80,10 @@ except ImportError:
         generate_representation_datasets,
         generate_all_datasets,
     )
+    from deep_dataset_builder import (
+        build_all_deep_pooled_datasets,
+        process_participant_deep_features,
+    )
 
 __all__ = [
     # Split loading
@@ -110,4 +118,7 @@ __all__ = [
     "validate_dataset_integrity",
     "generate_representation_datasets",
     "generate_all_datasets",
+    # Deep dataset builder
+    "build_all_deep_pooled_datasets",
+    "process_participant_deep_features",
 ]

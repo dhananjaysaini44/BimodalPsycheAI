@@ -143,5 +143,115 @@ class TestSplitLoader(unittest.TestCase):
         self.assertEqual(len(df_te), 56)
 
 
+    def test_load_classical_representations_matrix(self):
+        """Regression test verifying all 4 classical representations with mean and mean_std."""
+        classical_specs = [
+            ("raw_egemaps", "mean", 23),
+            ("raw_egemaps", "mean_std", 46),
+            ("raw_mfcc", "mean", 39),
+            ("raw_mfcc", "mean_std", 78),
+            ("boaw_egemaps", "mean", 100),
+            ("boaw_egemaps", "mean_std", 200),
+            ("boaw_mfcc", "mean", 100),
+            ("boaw_mfcc", "mean_std", 200),
+        ]
+        for rep, strat, expected_dim in classical_specs:
+            train_data = load_split_dataset(rep, strat, split="train")
+            dev_data = load_split_dataset(rep, strat, split="dev")
+            test_data = load_split_dataset(rep, strat, split="test")
+
+            self.assertEqual(train_data.X.shape, (163, expected_dim), f"Shape mismatch: {rep}/{strat} train")
+            self.assertEqual(dev_data.X.shape, (56, expected_dim), f"Shape mismatch: {rep}/{strat} dev")
+            self.assertEqual(test_data.X.shape, (56, expected_dim), f"Shape mismatch: {rep}/{strat} test")
+
+            self.assertEqual(len(train_data.y_binary), 163)
+            self.assertEqual(len(dev_data.y_score), 56)
+
+    def test_load_deep_representations_matrix(self):
+        """Regression test verifying all 4 deep representations across all official splits."""
+        deep_specs = [
+            ("vgg16", "mean", 4096),
+            ("vgg16", "mean_std", 8192),
+            ("densenet201", "mean", 1920),
+            ("densenet201", "mean_std", 3840),
+        ]
+        for rep, strat, expected_dim in deep_specs:
+            train_data = load_split_dataset(rep, strat, split="train")
+            dev_data = load_split_dataset(rep, strat, split="dev")
+            test_data = load_split_dataset(rep, strat, split="test")
+            train_dev_data = load_split_dataset(rep, strat, split="train_dev")
+
+            # Check counts
+            self.assertEqual(train_data.num_participants, 163, f"{rep}/{strat} train count")
+            self.assertEqual(dev_data.num_participants, 56, f"{rep}/{strat} dev count")
+            self.assertEqual(test_data.num_participants, 56, f"{rep}/{strat} test count")
+            self.assertEqual(train_dev_data.num_participants, 219, f"{rep}/{strat} train_dev count")
+
+            # Check feature shapes
+            self.assertEqual(train_data.X.shape, (163, expected_dim), f"{rep}/{strat} train X shape")
+            self.assertEqual(dev_data.X.shape, (56, expected_dim), f"{rep}/{strat} dev X shape")
+            self.assertEqual(test_data.X.shape, (56, expected_dim), f"{rep}/{strat} test X shape")
+            self.assertEqual(train_dev_data.X.shape, (219, expected_dim), f"{rep}/{strat} train_dev X shape")
+
+            # Check data types and finiteness
+            self.assertEqual(train_data.X.dtype, np.float32)
+            self.assertTrue(np.isfinite(train_data.X).all(), f"Non-finite in {rep}/{strat} train")
+            self.assertTrue(np.isfinite(dev_data.X).all(), f"Non-finite in {rep}/{strat} dev")
+            self.assertTrue(np.isfinite(test_data.X).all(), f"Non-finite in {rep}/{strat} test")
+
+            # Check label alignment
+            self.assertEqual(len(train_data.y_binary), 163)
+            self.assertEqual(len(train_data.y_score), 163)
+            self.assertEqual(len(test_data.y_binary), 56)
+            self.assertEqual(len(test_data.y_score), 56)
+
+            # Check exclusion of metadata
+            self.assertNotIn("name", train_data.feature_names)
+            self.assertNotIn("timeStamp", train_data.feature_names)
+            self.assertNotIn("Participant_ID", train_data.feature_names)
+
+    def test_deep_features_load_all_splits_and_cv(self):
+        """Verifies load_all_splits and get_train_cv_splits for VGG16 and DenseNet201."""
+        for rep, strat in [("vgg16", "mean"), ("densenet201", "mean_std")]:
+            splits = load_all_splits(rep, strat)
+            self.assertIsInstance(splits, DatasetSplits)
+            self.assertEqual(splits.train.num_participants, 163)
+            self.assertEqual(splits.dev.num_participants, 56)
+            self.assertEqual(splits.test.num_participants, 56)
+
+            # CV on train must succeed and strictly partition 163 samples
+            cv_folds = get_train_cv_splits(splits.train, n_splits=5, stratify=True)
+            self.assertEqual(len(cv_folds), 5)
+            all_val = []
+            for tr, val in cv_folds:
+                self.assertEqual(len(tr) + len(val), 163)
+                self.assertEqual(len(set(tr) & set(val)), 0)
+                all_val.extend(val)
+            self.assertEqual(sorted(all_val), list(range(163)))
+
+            # CV on dev and test must be rejected
+            with self.assertRaises(ValueError):
+                get_train_cv_splits(splits.dev)
+            with self.assertRaises(ValueError):
+                get_train_cv_splits(splits.test)
+
+    def test_reexport_shim_backward_compatibility(self):
+        """Verifies that the root code/split_loader.py shim produces identical results."""
+        from data.split_loader import load_split_dataset as canonical_load
+        import split_loader as shim_module
+
+        # Test classical
+        c1 = canonical_load("raw_mfcc", "mean_std", split="dev")
+        c2 = shim_module.load_split_dataset("raw_mfcc", "mean_std", split="dev")
+        np.testing.assert_array_equal(c1.X, c2.X)
+        np.testing.assert_array_equal(c1.participant_ids, c2.participant_ids)
+
+        # Test deep
+        d1 = canonical_load("densenet201", "mean", split="train")
+        d2 = shim_module.load_split_dataset("densenet201", "mean", split="train")
+        np.testing.assert_array_equal(d1.X, d2.X)
+        np.testing.assert_array_equal(d1.participant_ids, d2.participant_ids)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
