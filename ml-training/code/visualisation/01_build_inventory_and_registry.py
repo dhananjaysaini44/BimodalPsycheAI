@@ -386,17 +386,25 @@ def build_model_registry() -> pd.DataFrame:
         for p_file in sorted(ctrl_pred_dir.glob("*.csv")):
             name = p_file.stem.replace("__predictions", "")
             parts = name.split("__")
-            # e.g., boaw_egemaps__mean_std__linear_svc__dev
-            rep = parts[0]
-            pool = parts[1]
-            model_name = parts[2]
-            split = parts[3].replace("_oof", "")
+            if parts[0] == "reference_baseline":
+                rep = parts[1]
+                pool = parts[2]
+                model_name = parts[3]
+                split_raw = parts[4].replace("_oof", "")
+                config_path = OUTPUTS_DIR / "classical_controlled" / "configs" / f"reference_baseline__{rep}__{pool}__{model_name}__config.json"
+            else:
+                rep = parts[0]
+                pool = parts[1]
+                model_name = parts[2]
+                split_raw = parts[3].replace("_oof", "")
+                config_path = OUTPUTS_DIR / "classical_controlled" / "configs" / f"{rep}__{pool}__{model_name}__config.json"
+
+            eval_split = "train_oof" if "cv5" in split_raw else split_raw
             task = "classification" if "svc" in model_name or "dummy_class" in model_name else "regression"
             if "xgboost" in model_name:
                 task = "regression"
 
-            config_path = OUTPUTS_DIR / "classical_controlled" / "configs" / f"{rep}__{pool}__{model_name}__config.json"
-            model_id = f"controlled_classical__{task}__{rep}__{pool}__{model_name}__{split}"
+            model_id = f"controlled_classical__{task}__{rep}__{pool}__{model_name}__{eval_split}"
 
             df_p = pd.read_csv(p_file)
             y_true = df_p["y_true"].to_numpy()
@@ -426,7 +434,7 @@ def build_model_registry() -> pd.DataFrame:
                     "target": "PHQ_Binary",
                     "representation": rep,
                     "pooling": pool,
-                    "evaluation_split": "train_oof" if "cv5" in split else split,
+                    "evaluation_split": eval_split,
                     "participant_count": len(df_p),
                     "accuracy": round(acc, 4), "balanced_accuracy": round(bal_acc, 4), "f1": round(f1, 4),
                     "precision": round(prec, 4), "recall": round(rec, 4),
@@ -458,7 +466,7 @@ def build_model_registry() -> pd.DataFrame:
                     "target": "PHQ_Score",
                     "representation": rep,
                     "pooling": pool,
-                    "evaluation_split": "train_oof" if "cv5" in split else split,
+                    "evaluation_split": eval_split,
                     "participant_count": len(df_p),
                     "accuracy": None, "balanced_accuracy": None, "f1": None, "precision": None, "recall": None,
                     "roc_auc": None, "average_precision": None, "tn": None, "fp": None, "fn": None, "tp": None,
@@ -568,7 +576,7 @@ def build_model_registry() -> pd.DataFrame:
     if cnn_pred_dir.exists():
         for p_file in sorted(cnn_pred_dir.rglob("*.csv")):
             split_folder = p_file.parent.name  # dev or train_oof
-            stem = p_file.stem.replace("_dev_pred", "").replace("_oof_pred", "")
+            stem = p_file.stem.replace("__dev_pred", "").replace("__oof_pred", "")
             parts = stem.split("__")
             if "reference" in stem:
                 rep = parts[1]

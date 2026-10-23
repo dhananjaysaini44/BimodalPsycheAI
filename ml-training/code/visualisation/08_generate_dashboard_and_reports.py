@@ -699,16 +699,18 @@ def write_executive_summary():
 ### 1. Key High-Level Findings & Leaderboards
 
 1. **Top Classification Performance on Validation Set (`dev`, $n=56$)**:
-   - **Best Classical Acoustic Baseline**: `LinearSVC` on `raw_mfcc__mean` (**F1 = 0.4444**, Balanced Accuracy = 0.6548, Accuracy = 0.7321).
-   - **Best Deep CNN Embedding Classical Baseline (Phase 12)**: `LinearSVC` on `vgg16__mean` (**F1 = 0.4286**, Balanced Accuracy = 0.6190, Accuracy = 0.7143).
-   - **Best Neural Prediction Head (Phase 13A)**: Multilayer Perceptron on `densenet201__mean_std` (**F1 = 0.3636**, Balanced Accuracy = 0.5833, ROC-AUC = 0.5649).
-   - **Best Temporal Sequence Model (Phase 13B)**: GRU with Attention on unpooled `densenet201` window sequences (**ROC-AUC = 0.6136**, Balanced Accuracy = 0.5357, F1 = 0.1176).
+   - **Best Classical Acoustic Baseline**: `LinearSVC` on `raw_mfcc__mean` (**F1 = 0.4444**, Balanced Accuracy = 0.6477, Accuracy = 0.7321, ROC-AUC = 0.7045).
+   - **Best Controlled Baseline**: `LinearSVC` on `raw_mfcc__mean_std` (**F1 = 0.4000**, Balanced Accuracy = 0.6174, Accuracy = 0.7321, ROC-AUC = 0.6761).
+   - **Best Deep CNN Embedding Classical Baseline (Phase 12)**: `LinearSVC` on `vgg16__mean` (**F1 = 0.4286**, Balanced Accuracy = 0.6364, Accuracy = 0.7143, ROC-AUC = 0.6477).
+   - **Best Neural Prediction Head (Phase 13A)**: Multilayer Perceptron on `densenet201__mean_std` (**F1 = 0.3636**, Balanced Accuracy = 0.5985, Accuracy = 0.7500, ROC-AUC = 0.6742).
+   - **Best Temporal Sequence Model (Phase 13B)**: GRU with Attention on unpooled `densenet201` window sequences (**ROC-AUC = 0.6136**, Balanced Accuracy = 0.4962, Accuracy = 0.7321, F1 = 0.1176).
 
 2. **Top Continuous Regression Performance on Validation Set (`dev`, $n=56$)**:
-   - **Best Classical Acoustic Baseline**: `Ridge` on `raw_egemaps__mean_std` (**CCC = 0.4074**, RMSE = 5.76, MAE = 4.67, $R^2 = 0.0841$).
-   - **Best Deep CNN Embedding Classical Baseline (Phase 12)**: `Ridge` on `densenet201__mean` (**CCC = 0.1774**, RMSE = 5.92, MAE = 4.79, $R^2 = 0.0347$).
-   - **Best Neural Prediction Head (Phase 13A)**: MLP on `densenet201__mean` (**CCC = 0.1261**, RMSE = 6.46, MAE = 5.12, $R^2 = -0.1472$).
-   - **Best Temporal Sequence Model (Phase 13B)**: GRU with Attention on `vgg16` window sequences (**CCC = 0.2307**, RMSE = 5.86, MAE = 4.88, $R^2 = 0.0531$).
+   - **Best Classical Acoustic Baseline**: `Ridge` on `raw_mfcc__mean_std` (**CCC = 0.2844**, RMSE = 6.2167, MAE = 5.1740, $R^2 = -0.2053$).
+   - **Best Deep CNN Embedding Classical Baseline (Phase 12)**: `Ridge` on `densenet201__mean_std` (**CCC = 0.1580**, RMSE = 6.9172, MAE = 5.5939, $R^2 = -0.4923$; Train 5-fold OOF CCC = 0.2735).
+   - **Best Neural Prediction Head (Phase 13A)**: MLP on `densenet201__mean` (**CCC = 0.2275**, RMSE = 5.8914, MAE = 4.7089, $R^2 = -0.0825$).
+   - **Best Temporal Sequence Model (Phase 13B)**: GRU with Attention on unpooled `vgg16` window sequences (**CCC = 0.0958**, RMSE = 6.9533, MAE = 5.7404, $R^2 = -0.5079$; Train 5-fold OOF CCC = 0.0861; DenseNet201 Train OOF CCC = 0.1599).
+   - **Historical Final Test Benchmark** (Official Test split, $n=56$): `Ridge` on `boaw_mfcc__mean_std` (**CCC = 0.2827**, RMSE = 7.5342).
 
 ---
 
@@ -718,7 +720,7 @@ An exhaustive audit of joint pooled representations revealed a profound architec
 
 1. **Acoustic Low-Level Descriptors (`raw_egemaps`, `raw_mfcc`)**:
    - In `raw_mfcc`, the median inter-component Pearson correlation between mean and standard deviation components across dimensions is **$r = -0.0343$** (with **0.0%** of dimensions exhibiting $|r| > 0.8$).
-   - **Scientific Interpretation**: Acoustic temporal dispersion provides completely orthogonal information to spectral envelope centroids. Adding standard deviation significantly boosted regression performance (e.g. `raw_egemaps__mean_std` achieved the project's highest CCC of **0.4074**).
+   - **Scientific Interpretation**: Acoustic temporal dispersion provides completely orthogonal information to spectral envelope centroids. Adding standard deviation significantly boosted regression performance: for `raw_mfcc`, CCC increased from **0.2475** (`raw_mfcc__mean`) to **0.2844** (`raw_mfcc__mean_std`), achieving the project's highest validation CCC on Dev.
 
 2. **Deep Pre-trained CNN Embeddings (`vgg16`, `densenet201`)**:
    - In `vgg16`, the median inter-component correlation is **$r = 0.9316$** (with **78.05%** of dimensions exhibiting $|r| > 0.8$).
