@@ -909,3 +909,556 @@ Linear Output Head: Linear(32, 1) -> Scalar Output
 ### 17.8 Verification Evidence
 - **Dedicated Phase 13B Unit Tests** ([`code/tests/test_cnn_embedding_temporal_stage13b.py`](file:///e:/Projects/BimodalPsycheAI/ml-training/code/tests/test_cnn_embedding_temporal_stage13b.py)): 5/5 tests passing, verifying model tensor shape contracts, masked attention integrity (zero attention on padded windows), participant-balanced scaling math, variable-length batch collation, official Test split quarantine, and PyTorch checkpoint reload fidelity.
 - **Full Repository Test Suite**: 75/75 unit tests passing across all acoustic feature extractors, split loaders, classical baselines, neural heads, and temporal sequence models.
+
+
+---
+
+## 18. Phase 14: Audio-Based Deep Learning Models (Status: FUTURE / DEFERRED)
+
+### 18.1 Motivation & Planned Architectures
+Phase 14 was conceptualized to extend beyond frozen CNN representations and explore end-to-end and representation-fine-tuned audio deep learning models directly on raw audio waveforms and log-mel spectrogram representations:
+1. **Audio Spectrogram Transformer (AST)**: Pretrained self-attention transformers operating on patch-extracted audio spectrogram representations, capturing long-range acoustic and prosodic dependencies across multi-second interview spans.
+2. **End-to-End CNN Backbone Fine-Tuning**: Unfreezing top convolutional blocks in VGG16 and DenseNet201 backbones to adapt generic ImageNet-derived acoustic filters directly to clinical depression speech.
+3. **Hybrid Temporal Architectures**: Joint convolutional-recurrent networks with learned self-attention and multi-head pooling.
+
+### 18.2 Postponement Rationale & Hardware Dependencies
+Full execution of Phase 14 requires extensive GPU memory and compute throughput for multi-epoch backpropagation through multi-million parameter audio backbones:
+- **Hardware Bottleneck**: Dedicated high-throughput hardware (specifically, the institutional NVIDIA DGX A100 multi-GPU cluster) is currently unavailable.
+- **Protocol Decision**: Rather than implementing compromised, severely truncated, or batch-constrained models on local laptop GPU hardware (NVIDIA GeForce RTX 3050 Laptop GPU, 4 GB VRAM), Phase 14 is formally **deferred/postponed, not cancelled**.
+- **Scientific Integrity**: In keeping with strict empirical standards, no placeholder models have been fitted, and no speculative performance metrics are reported.
+
+### 18.3 Evaluation Protocol & Quarantine Guarantees
+When hardware access is re-established, Phase 14 will execute under the identical leakage-free protocol established in Phases 6–13B:
+- 5-fold cross-validation strictly on the official Training set ($N=163$).
+- Out-of-sample validation and architecture selection strictly on the Development set ($N=56$).
+- The official Test split ($N=56$) remains strictly quarantined and will not be touched during Phase 14 development.
+
+---
+
+## 19. Phase 15: Comprehensive Model Visualization, Benchmark Analysis and Quality Audit
+
+### 19.1 Objective & Audited Benchmark Scope
+Phase 15 executed an exhaustive, artifact-driven visualization, exploratory data analysis, and quality audit across every model, dataset, and metric produced across the project's historical phases.
+
+The audit covered all **1,033 cataloged model evaluations** across 6 distinct benchmark suites, spanning binary classification (`PHQ_Binary` $\ge 10$) and continuous severity regression (`PHQ_Score`):
+
+| Benchmark Suite | Evaluated Model Families | Prediction Splits ($N$) | Total Evaluated Configurations |
+| :--- | :--- | :--- | :---: |
+| **Broad Classical Acoustic Benchmark** | LinearSVC, Ridge, LogisticRegression, Lasso, ElasticNet, SVR, RBF SVC, XGBoost, NaiveBayes, Dummy | Train OOF ($n=163$), Dev ($n=56$) | 960 (480 classification, 480 regression) |
+| **Controlled Classical Acoustic Benchmark** | LinearSVC, Ridge, XGBoost, Dummy on `mean_std` representations | Train OOF ($n=163$), Dev ($n=56$) | 20 (8 classification, 12 regression) |
+| **Phase 12: Frozen CNN Classical Baselines** | LinearSVC, Ridge, Dummy on `mean` and `mean_std` VGG16 / DenseNet201 | Train OOF ($n=163$), Dev ($n=56$) | 20 (10 classification, 10 regression) |
+| **Phase 13A: Neural Prediction Heads** | Multi-Layer Perceptrons (MLP with bottleneck, LayerNorm, Dropout=0.50) | Train OOF ($n=163$), Dev ($n=56$) | 16 (8 classification, 8 regression) |
+| **Phase 13B: Temporal Sequence Models** | Bidirectional GRU (Hidden=32) + Additive Attention on unpooled sequences | Train OOF ($n=163$), Dev ($n=56$) | 8 (4 classification, 4 regression) |
+| **Phase 10: Official Final Test Benchmark** | Final LinearSVC, Ridge, and XGBoost models fit on Full Train + Dev ($n=219$) | Official Test ($n=56$) | 9 (4 classification, 5 regression) |
+| **Total Project Model Registry** | **All cataloged classical, neural, temporal, and test models** | **Train OOF ($n=512$), Dev ($n=512$), Test ($n=9$)** | **1,033 evaluated models** |
+
+### 19.2 Cross-Model Benchmark Comparison & Findings
+
+#### 1. Binary Classification Benchmark (`PHQ_Binary`, Dev Split, $n=56$)
+In the binary depression classification task (clinical prevalence $25.0\%$ on Dev, $14/56$), linear baselines operating on low-dimensional spectral centroids and dense static neural heads achieved the strongest rank-order discrimination:
+
+| Model Family | Top Performing Architecture | Feature Representation | Dev F1 | Dev BalAcc | Dev ROC-AUC | Dev Accuracy |
+| :--- | :--- | :--- | :---: | :---: | :---: | :---: |
+| **Classical Acoustic Baseline** | `LinearSVC` | `raw_mfcc__mean` ($D=39$) | **0.4444** | **0.6477** | **0.7045** | 0.7321 |
+| **Frozen CNN Baseline (Phase 12)** | `LinearSVC` | `vgg16__mean` ($D=4096$) | 0.4286 | 0.6364 | 0.6477 | 0.7143 |
+| **Controlled Acoustic Baseline** | `LinearSVC` | `raw_mfcc__mean_std` ($D=78$) | 0.4000 | 0.6174 | 0.6761 | 0.7321 |
+| **Neural Prediction Head (Phase 13A)** | `MLP(Hidden=32, Dr=0.50)` | `densenet201__mean_std` ($D=3840$) | 0.3636 | 0.5985 | 0.6742 | **0.7500** |
+| **Temporal Sequence Model (Phase 13B)** | `GRU(32)+Attention` | `vgg16` (sequential, $D=4096$) | 0.0000 | 0.4773 | 0.6648 | **0.7500** |
+| **Temporal Sequence Model (Phase 13B)** | `GRU(32)+Attention` | `densenet201` (sequential, $D=1920$) | 0.1176 | 0.4962 | 0.6136 | 0.7321 |
+| **Reference Baseline** | `DummyClassifier(most_frequent)` | Any representation | 0.0000 | 0.5000 | 0.5000 | 0.7500 |
+
+*Key Classification Observations*:
+- **Acoustic Low-Dimensional Superiority**: `LinearSVC` on `raw_mfcc__mean` achieved the highest F1-score (**0.4444**) and ROC-AUC (**0.7045**) on the validation set, demonstrating that compact spectral envelope statistics provide robust discriminative cues without overfitting.
+- **Threshold Starvation**: Across all model families, applying the default threshold $\tau = 0.5$ under clinical class imbalance led uncalibrated models (e.g., temporal GRUs, tree ensembles, and DummyClassifiers) to predict zero positive cases ($TP=0, FP=0$), resulting in degenerate F1 scores of 0.0000 despite superficial accuracy around 75%. Post-hoc threshold tuning or class-weighted loss formulations are essential for clinical deployment.
+
+#### 2. Continuous Depression Severity Regression (`PHQ_Score`, Dev Split, $n=56$)
+In continuous severity regression, linear regularized models and nonlinear bottleneck heads demonstrated distinct error characteristics across the clinical severity trajectory:
+
+| Model Family | Top Performing Architecture | Feature Representation | Dev CCC | Dev RMSE | Dev MAE | Dev $R^2$ | Train OOF CCC |
+| :--- | :--- | :--- | :---: | :---: | :---: | :---: | :---: |
+| **Classical Acoustic Baseline** | `Ridge` | `raw_mfcc__mean_std` ($D=78$) | **0.2844** | 6.2167 | 5.1740 | -0.2053 | 0.2174 |
+| **Neural Prediction Head (Phase 13A)** | `MLP(Hidden=32, Dr=0.50)` | `densenet201__mean` ($D=1920$) | 0.2275 | **5.8914** | **4.7089** | **-0.0825** | 0.0985 |
+| **Neural Prediction Head (Phase 13A)** | `MLP(Hidden=32, Dr=0.50)` | `densenet201__mean_std` ($D=3840$) | 0.2123 | 6.1829 | 5.0657 | -0.1923 | 0.0716 |
+| **Controlled Acoustic Baseline** | `XGBoost` | `raw_mfcc__mean_std` ($D=78$) | 0.1613 | 6.4384 | 5.3789 | -0.2929 | 0.1132 |
+| **Frozen CNN Baseline (Phase 12)** | `Ridge` | `densenet201__mean_std` ($D=3840$) | 0.1580 | 6.9172 | 5.5939 | -0.4923 | **0.2735** |
+| **Temporal Sequence Model (Phase 13B)** | `GRU(32)+Attention` | `vgg16` (sequential, $D=4096$) | 0.0958 | 6.9533 | 5.7404 | -0.5079 | 0.0861 |
+| **Temporal Sequence Model (Phase 13B)** | `GRU(32)+Attention` | `densenet201` (sequential, $D=1920$) | 0.0525 | 6.5017 | 5.0744 | -0.3184 | 0.1599 |
+| **Reference Baseline** | `DummyRegressor(mean)` | Any representation | -0.0000 | 5.6629 | 4.7433 | -0.0001 | -0.0083 |
+
+*Key Regression Observations*:
+- **Highest Correlation**: `raw_mfcc__mean_std` paired with linear `Ridge` regression achieved the benchmark's highest Lin's Concordance Correlation Coefficient (**0.2844**), demonstrating that temporal dispersion metrics (variance across interview time steps) provide complementary information to spectral centroids.
+- **Lowest Error**: The `densenet201__mean` MLP neural head attained the lowest prediction errors across all models (RMSE: **5.8914**, MAE: **4.7089**), confirming the capacity of nonlinear bottleneck projections to map dense deep acoustic representations to target severity scores.
+
+### 19.3 Mathematical Dynamics of Pooling: `mean` vs. `mean_std`
+The audit analyzed the mathematical and empirical consequences of concatenating temporal standard deviations to mean feature vectors:
+1. **Low-Dimensional Acoustic Representations**: For `raw_mfcc` and `raw_egemaps`, the mean and standard deviation components exhibit low mutual correlation ($|r| \approx 0.15 - 0.35$). Adding temporal dispersion provides nearly orthogonal information regarding prosodic variation, pitch modulation, and speaking rate variability, substantially boosting regression concordance (e.g., `raw_mfcc` Ridge Dev CCC improved from 0.0865 to **0.2844**).
+2. **High-Dimensional Deep CNN Embeddings**: In contrast, for high-dimensional feature spaces derived from ReLU activations in `vgg16` and `densenet201`, ReLU activations produce strong scale-variance coupling: channels with high average activations inevitably exhibit high variance ($r = 0.9316$, with 78.05% of dimensions showing $|r| > 0.8$). Doubling the feature dimension to 8,192 introduced collinearity without adding orthogonal information, increasing small-sample variance inflation on limited clinical cohorts.
+
+### 19.4 Training History & Overfitting Diagnostics
+Diagnostics across the 12 neural loss histories (8 MLP heads from Phase 13A and 4 Temporal sequence models from Phase 13B) revealed:
+- **Optimal Early Stopping**: Static MLP heads stabilized within 25–40 epochs for classification and within 1–5 epochs for regression, reflecting rapid convergence under strong Dropout ($p=0.50$).
+- **Generalization Gaps**: Temporal models exhibited wider generalization gaps between training and validation loss, confirming that recurrent hidden states accumulate acoustic session noise over lengthy sequence inputs (~900 steps) when participant supervision is sparse ($N=163$).
+
+### 19.5 Dataset Health, Coverage & Correlation Analysis
+- **Participant Census**: All 28 pooled datasets (24 acoustic + 4 deep CNN) possess exactly 275 rows matching the authoritative E-DAIC participant registry (163 Train, 56 Dev, 56 Test) with 0 missing values.
+- **Constant Features**: Verified and documented that `min` pooling on BoAW representations contains inactive codebook entries (87 constant zero columns), and VGG16 features contain inactive ReLU channels (140 channels in `mean`, 280 in `mean_std`). These are intrinsic representation properties handled safely via zero-variance masking.
+- **Feature-Target Associations**: Train-only correlation analyses demonstrated that lower-order MFCC statistics correlate moderately with depression severity, whereas unregularized individual CNN channels show low linear target correlation, necessitating joint nonlinear transformation.
+
+### 19.6 Multimodal Ensembling Feasibility (Residual Orthogonality)
+Model-to-model prediction and residual correlation analyses on the Development cohort ($n=56$) revealed that:
+- Predictions from classical acoustic models (`raw_mfcc` Ridge) and deep CNN embedding models (`densenet201` MLP) share a residual error correlation of only **$r \approx 0.35 - 0.48$**.
+- This substantial error orthogonality confirms that acoustic prosodic descriptors and deep visual spectrogram features capture distinct behavioral manifestations of depression, providing strong empirical justification for intermediate or late multimodal fusion in upcoming phases.
+
+### 19.7 Comprehensive Discrepancy Audit & Final Validation
+A rigorous, artifact-driven audit inspected all generated summaries, registries, model cards, and dashboard files against raw participant predictions:
+- **Precedence Hierarchy Enforced**: Level 1 (raw participant predictions + official split labels) $\to$ Level 2 (authoritative experiment metrics logs) $\to$ Level 3 (experiment configs and manifests) $\to$ Level 4 (generated summaries and reports).
+- **Mathematical Ground Truth Verified**: Independent recomputation confirmed that **0 metric calculation errors** existed in `model_registry.csv` across all 1,033 models.
+- **Identified Discrepancies & Resolutions**:
+  1. *Controlled Dummy Model Collision*: Token splitting on `reference_baseline` prefix caused rows 978 and 979 to be assigned `split='dummy'`, overwriting the `train_oof` model card. The parser in `01_build_inventory_and_registry.py` was repaired, eliminating the collision and restoring both `train_oof` and `dev` cards.
+  2. *Phase 12 Identifier Normalization*: Incomplete suffix stripping left trailing underscores on model architectures (`linear_svc_`) and triple underscores (`___dev`) in model IDs. Parsers were corrected to cleanly strip `__dev_pred` and `__oof_pred`, restoring standard grammar.
+  3. *Erroneous Narrative CCC Claims*: Corrected legacy text in `executive_summary.md` that claimed `raw_egemaps__mean_std achieved CCC of 0.4074`. Confirmed the true project-wide highest validation CCC is **0.2844** (`raw_mfcc__mean_std` with Ridge). Corrected Temporal `vgg16` Train OOF CCC to the verified log value **0.0861** (replacing an inaccurate 0.1706 figure).
+  4. *Schema Handling*: Added case-insensitive handling for `participant_id` (used in Phase 13B prediction files) and continuous score fallbacks (`y_score`, `decision_function`, `probability`).
+- **Audit Deliverables**: Compiled in the audit workspace:
+  - `source_of_truth_map.csv` (1,033 mapped models)
+  - `discrepancy_log.csv` (all 36 logged items resolved; **0 unresolved blockers**)
+  - `audit_summary.md`, `correction_log.md`, `validation_report.md`, and `remaining_issues.md`
+- **Asset Compliance**: Confirmed zero SVG files generated across the entire audit suite. In strict accordance with project data management policy, all diagnostic figures and interactive viewers remain local and excluded from Git; publication-quality figures will be organized separately upon project finalization.
+
+---
+
+## 20. Phase 16: Final Test Validation for Deep Audio Architectures (Status: FUTURE / PENDING)
+
+### 20.1 Purpose & Methodological Scope
+Phase 16 governs the eventual, strictly guarded evaluation of selected deep learning and fine-tuned audio models on the official held-out E-DAIC Test split ($N=56$).
+
+### 20.2 Relationship to Historical Classical Test Benchmark
+It is essential to distinguish Phase 16 from earlier test evaluations:
+- **Classical Acoustic Test Evaluation Completed (Phase 10)**: The classical acoustic baselines (`outputs/classical_final_test_v1/`) have already been evaluated on the official Test split in Phase 10 under a strict one-time protocol.
+- **Deep Audio Test Evaluation Pending**: Phase 16 applies strictly to the deep audio architectures (from deferred Phase 14) that have not yet been trained or evaluated on Test. The project does not claim that Test has never been examined; rather, deep learning models remain unvalidated on Test.
+
+### 20.3 Step-by-Step Test Validation Protocol
+When Phase 14 deep learning models are completed, Phase 16 will execute under the following strict protocol guards:
+1. **Model Selection Lock**: Top configurations are selected exclusively based on 5-fold cross-validation on Train ($N=163$) and validation performance on Development ($N=56$).
+2. **Configuration Freeze**: All hyperparameters, layer configurations, preprocessing scaling parameters, and random seeds are permanently frozen.
+3. **Full Retraining on Train + Dev ($N=219$)**: Selected configurations are refit on the combined Train + Development cohort ($N=219$) to maximize sample efficiency.
+4. **Single-Pass Inference on Test ($N=56$)**: Models are evaluated exactly once on the quarantined Test split.
+5. **Artifact Persistence**: Final predictions, metrics, confusion matrices, and parity records will be serialized to `outputs/deep_final_test_v1/`.
+- **Absolute Protocol Guard**: The Test split must never be used for model selection, architecture search, hyperparameter tuning, or iterative threshold adjustments.
+
+---
+
+## 21. Phase 17: Text-Based Models and Multimodal Expansion 
+
+### 21.1 Motivation & Non-Sequential Progression Strategy
+While Phase 14 (audio deep learning) and Phase 16 (deep audio final test) are deferred pending DGX A100 GPU availability, text-based modeling does not require massive compute infrastructure for initial stages.
+
+Therefore, **Phase 17 proceeds immediately out of numerical order**. Text transcript processing, TF-IDF classical baselines, forensic failure audits, and calibrated classical benchmarks are fully completed on local compute without blocking on external GPU cluster availability.
+
+### 21.2 Sub-Phase Progression (Phases 17A–17D)
+Phase 17 is structured into four sequential, rigorous sub-phases:
+
+#### Phase 17A: Transcript Integration & Calibrated Classical Baselines 
+
+##### 1. Participant Census, Schema Audit & Ingestion
+An exhaustive audit across `ml-training/edaic-woz/data/<PID>_P/` located all 275 official participant interview transcripts:
+- **Completeness**: 100.0% file presence (163 Train, 56 Development, 56 Test) with zero missing files and zero corrupted files.
+- **Uniform Schema**: All transcripts adhere to a strict 4-column tab-delimited schema (`Start_Time`, `End_Time`, `Text`, `Confidence`). Across all 275 sessions, zero null or empty text values were detected.
+- **Utterance Processing**: Extracted dialogue turns and sorted chronologically into standardized modeling documents (`raw_text` and whitespace-normalized `normalized_text`).
+- **Exploratory Text Statistics**:
+  - Corpus mean word count: $2,313.7 \pm 748.4$ words (median $2,201.0$; range $392$ to $5,431$ words).
+  - Train split word count: $2,310.8 \pm 737.5$ words; Development split: $2,374.0 \pm 787.9$ words; Test split: $2,261.7 \pm 749.5$ words.
+  - Mean utterance count: $87.8 \pm 31.0$ utterances per session (range $22$ to $240$).
+  - Mean ASR confidence: $0.9186 \pm 0.0195$ (range $0.8631$ to $0.9561$), confirming high automated speech recognition fidelity.
+  - Mean interview duration: $935.3$ seconds ($\approx 15.6$ minutes).
+  - Corpus vocabulary: 10,652 unique tokens.
+- **Split & Target Alignment**: Exactly aligned against official E-DAIC split files (`train_split.csv`, `dev_split.csv`, `test_split.csv`).
+- **Strict Test Quarantine**: Official Test participants ($N=56$) were ingested and inventoried for schema validity, but their transcripts and labels remain strictly quarantined and unexamined during all model training and threshold tuning.
+
+##### 2. Classical TF-IDF Feature Representations
+Three distinct n-gram representations were extracted using scikit-learn `TfidfVectorizer` pipelines fitted strictly on training data:
+1. `word_tfidf`: Word unigrams and bigrams ($n \in [1, 2]$), sublinear term frequency scaling (`sublinear_tf=True`), document frequency bounds $\text{min\_df}=2$, $\text{max\_df}=0.85$, yielding $D=5,000$ features.
+2. `char_tfidf`: Character n-grams ($n \in [2, 5]$), sublinear term frequency scaling, $\text{min\_df}=5$, capturing sub-word morphological patterns, lexical stems, and conversational pauses/fillers, yielding $D=10,000$ features.
+3. `word_char_tfidf`: Composite representation combining word and character feature spaces via `FeatureUnion`, yielding $D=15,000$ features.
+
+##### 3. Initial Baselines & Forensic Failure Diagnosis Audit
+Initial uncalibrated baseline experiments (`outputs/text_baselines_v1/`) produced anomalous evaluation metrics:
+- Binary classification (`LinearSVC`, default $C=1.0$, default threshold $\tau=0.0$) yielded Dev $F_1 = 0.0000$, Balanced Accuracy = $0.5000$, and Accuracy = $0.7857$ across all three representations.
+- Continuous regression (`Ridge`, default $\alpha=1.0$) yielded Dev CCC between $0.0764$ and $0.1698$, RMSE between $5.23$ and $5.47$, and negative $R^2 \in [-0.01, -0.07]$.
+
+Rather than replacing models or assuming textual unsuitability, an independent forensic failure audit (`outputs/text_baselines_audit_v1/`) was initiated:
+- **Metric & Data Integrity**: 100% of reported metrics were mathematically reproduced from saved prediction files ($\Delta < 10^{-6}$). Data integrity checks confirmed zero split leakage, zero label corruption, and zero ID mismatch.
+- **Root Cause 1 — Classification Decision Boundary Shift**: Under unweighted hinge loss on imbalanced clinical data (prevalence $22.7\%$ on Train), the LinearSVC intercept shifted to $b \approx -0.55$. Because TF-IDF feature vectors are $L_2$-normalized to unit hyperspheres, decision scores $f(x) = w^T x + b$ were centered around $-0.55$. Consequently, every participant score fell below the arbitrary default threshold $\tau=0.0$, collapsing predictions to all-negative ($TP=0, FP=0$). However, the model possessed strong continuous discriminative ability: ROC-AUC was **0.7159** on `char_tfidf`, surpassing every acoustic baseline in the repository.
+- **Root Cause 2 — Regression L2 Shrinkage Distortion**: The default regularization strength $\alpha=1.0$ applied to unit-norm sparse vectors imposed excessive weight shrinkage. Predictions collapsed toward the sample mean, compressing predicted standard deviation to $\text{std}(y_{pred}) = 0.94$, which was only $16.7\%$ of the true target standard deviation ($\text{std}(y_{true}) = 5.64$). Because Lin's Concordance Correlation Coefficient explicitly penalizes variance divergence ($CCC = \rho \cdot C_b$, where $C_b = \frac{2}{\nu + 1/\nu + u^2}$ and $\nu = s_x / s_y$), the scale factor $C_b$ dropped to $0.31$, suppressing CCC despite a healthy Pearson correlation ($r = 0.5235$).
+
+##### 4. Train-Only Calibration & Finalized Baselines
+To eliminate these artifacts without violating benchmark leakage rules, principled Train-only calibration protocols were formalized and evaluated (`outputs/text_baselines_final_v1/`):
+- **Classification Calibration Protocol**: The decision threshold $\tau^*$ was selected strictly using Train out-of-fold predictions to maximize out-of-fold $F_1$:
+  $$\tau^* = \arg\max_\tau F_1(\text{Train OOF}(\tau))$$
+  Selected thresholds: `word_tfidf` $\tau^* = -0.4932$; `char_tfidf` $\tau^* = -0.5432$; `combined_tfidf` $\tau^* = -0.4180$. The pipeline was then fitted on full Train ($N=163$) and evaluated once on Development ($N=56$) using the frozen threshold $\tau^*$.
+- **Regression Calibration Protocol**: The regularization hyperparameter $\alpha^*$ was selected strictly using Train 5-fold cross-validation to maximize out-of-fold CCC across a logarithmic grid $\alpha \in \{10^{-4}, 10^{-3}, 10^{-2}, 10^{-1}, 1, 10, 100\}$. The optimal parameter $\alpha^* = 10^{-4}$ (0.0001) eliminated over-shrinkage, restoring prediction variance to match empirical target spread.
+
+##### 5. Finalized Classification Benchmark Results (`PHQ_Binary`, Dev Split, $N=56$)
+
+| Feature Representation | Dimension ($D$) | Train OOF $\tau^*$ | Train OOF F1 | Train OOF BalAcc | Train OOF AUC | Dev F1 | Dev BalAcc | Dev AUC | Dev Precision | Dev Recall | Dev Accuracy |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| `char_tfidf` | 10,000 | -0.5432 | 0.4815 | 0.6728 | 0.6978 | **0.4571** | **0.6629** | **0.7159** | 0.3478 | **0.6667** | 0.6607 |
+| `combined_tfidf` | 15,000 | -0.4180 | **0.5079** | 0.6765 | 0.7244 | 0.4545 | 0.6515 | 0.6875 | **0.5000** | 0.4167 | **0.7857** |
+| `word_tfidf` | 5,000 | -0.4932 | 0.5063 | **0.6830** | **0.7308** | 0.4167 | 0.6288 | 0.6174 | 0.4167 | 0.4167 | 0.7500 |
+| *Reference: Acoustic Top* | 39 | 0.0000 | 0.2716 | 0.5645 | 0.6022 | 0.4444 | 0.6477 | 0.7045 | 0.3684 | 0.5833 | 0.7321 |
+| *Reference: Dummy* | — | — | 0.0000 | 0.5000 | 0.5000 | 0.0000 | 0.5000 | 0.5000 | 0.0000 | 0.0000 | 0.7500 |
+
+##### 6. Finalized Continuous Regression Benchmark Results (`PHQ_Score`, Dev Split, $N=56$)
+
+| Feature Representation | Dimension ($D$) | Optimal $\alpha^*$ | Train OOF CCC | Train OOF RMSE | Train OOF MAE | Dev CCC | Dev RMSE | Dev MAE | Dev $R^2$ | Dev Pearson $r$ |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| `char_tfidf` | 10,000 | 0.0001 | **0.1349** | 5.9226 | 4.8736 | **0.3211** | **4.9812** | **3.9942** | **+0.2262** | **0.4939** |
+| `combined_tfidf` | 15,000 | 0.0001 | 0.1295 | 5.8216 | **4.8214** | 0.2284 | 5.1323 | 4.1420 | +0.1785 | 0.4843 |
+| `word_tfidf` | 5,000 | 0.0001 | 0.1188 | **5.8118** | 4.8525 | 0.1450 | 5.3356 | 4.3937 | +0.1121 | 0.3882 |
+| *Reference: Acoustic Top* | 78 | 1.0 | 0.2174 | 6.8402 | 5.4619 | 0.2844 | 6.2167 | 5.1740 | -0.2053 | 0.2988 |
+| *Reference: Dummy* | — | — | -0.0083 | 6.1219 | 5.0984 | -0.0000 | 5.6629 | 4.7433 | -0.0001 | 0.0000 |
+
+##### 7. Key Findings & Cross-Modal Comparison
+1. **Linguistic Modality Superiority**:
+   Calibrated classical text models outperform all single-modality acoustic models across both tasks:
+   - In classification, `char_tfidf` achieves Dev $F_1 = \mathbf{0.4571}$ and ROC-AUC = $\mathbf{0.7159}$, exceeding the best acoustic baseline (`raw_mfcc__mean`: $F_1=0.4444$, AUC=$0.7045$) and the best deep audio neural head (`densenet201__mean_std` MLP: $F_1=0.3636$, AUC=$0.6742$).
+   - In regression, `char_tfidf` achieves Dev CCC = $\mathbf{0.3211}$, RMSE = $\mathbf{4.9812}$, and is the **first model in the repository to achieve a positive coefficient of determination ($R^2 = \mathbf{+0.2262}$)** on the held-out Development set, vastly outperforming the best acoustic regression model (`raw_mfcc__mean_std` Ridge: $\text{CCC}=0.2844$, $\text{RMSE}=6.2167$, $R^2=-0.2053$).
+2. **Character n-grams Outperform Word n-grams**:
+   Across both tasks, `char_tfidf` consistently outperforms `word_tfidf` (classification $F_1$: $0.4571$ vs $0.4167$; regression CCC: $0.3211$ vs $0.1450$). Sub-word n-grams capture clinical linguistic cues including hesitation markers, repeated morphological patterns, and expressive punctuation without suffering from vocabulary sparsity on small cohorts.
+3. **Primary Text Representation Selected**:
+   `char_tfidf` is selected as the primary classical text representation for Phase 17 baseline tracking and downstream Phase 17D multimodal fusion benchmarking.
+
+##### 8. Deliverables & Verification Evidence
+- **Ingestion & Data Artifacts** (`ml-training/dataset/text_v1/`):
+  - `transcript_inventory.csv` (275 participants cataloged)
+  - `participant_transcripts.csv` (full modeling documents)
+  - `metadata_join_report.json` and `data_quality_report.md`
+- **Audit & Forensic Deliverables** (`ml-training/outputs/text_baselines_audit_v1/`):
+  - `phase_17a_failure_audit.md`, `data_integrity_report.md`, `metric_reproduction_report.md`, `validation_report.md`
+  - `classification_diagnostics.csv`, `regression_diagnostics.csv`, `corrective_experiments.csv`, `audit_manifest.json`
+- **Finalized Baseline Deliverables** (`ml-training/outputs/text_baselines_final_v1/`):
+  - Calibrated prediction artifacts across Train OOF ($N=163$) and Development ($N=56$)
+  - Serialized pipeline artifacts and comprehensive benchmark reports
+- **Unit Test Verification**:
+  - `code/tests/test_text_baselines_stage17a.py`: 6/6 tests passing (data schema, census completeness, split alignment, deterministic extraction).
+  - `code/tests/test_text_baselines_finalization.py`: 5/5 tests passing (threshold selection bounds, metric reproduction fidelity, prediction schema compliance, serialization integrity).
+  - Total text baseline test suite: 11/11 tests passing. Repository regression suite: 86/86 tests passing.
+
+#### Phase 17B: Transformer-Based Text Embeddings & Classical Prediction Heads
+##### 1. Architectural Selection & Pretrained Model
+Phase 17B investigated whether dense contextual sentence embeddings from a pretrained transformer language model enhance depression discrimination (`PHQ_Binary`) and severity regression (`PHQ_Score`) compared to the finalized Phase 17A character/word TF-IDF baselines, prior to any end-to-end neural fine-tuning.
+- **Model Chosen**: `sentence-transformers/all-MiniLM-L6-v2` (Apache 2.0 license).
+- **Architecture**: 6-layer BERT-style Transformer, hidden dimension $D=384$, 12 self-attention heads, 22.7M parameters.
+- **Sequence Constraint**: Native maximum sequence length of 256 WordPiece tokens.
+- **Hardware & Execution**: Evaluated in frozen feature extraction mode (`eval()`, `torch.no_grad()`) on local NVIDIA GeForce RTX 3050 Laptop GPU (PyTorch 2.6.0+cu124). Total feature extraction for the entire 275-participant corpus required 38.5 seconds.
+
+##### 2. Deterministic Transcript Chunking & Length Accommodation
+E-DAIC semi-structured clinical interview transcripts range from 192 to 4,734 tokens (mean $1,461 \pm 628$ tokens), substantially exceeding the 256-token context limit of lightweight transformers. Truncating to the first 256 tokens would discard over $80\%$ of interview content, introducing severe information loss.
+- **Chunking Protocol**: Deterministic word-level sliding window with window size $W = 250$ tokens and stride $S = 190$ tokens ($60$ tokens overlap $\approx 24\%$).
+- **Corpus Statistics**: Generated exactly **2,163 text chunks** across all 275 sessions ($N_{\text{Train}}=1,273$, $N_{\text{Dev}}=453$, $N_{\text{Test}}=437$). Mean chunk count per participant was $7.87 \pm 3.38$ (range: 1 to 25).
+- **Integrity**: Zero participant truncation; full conversational transcripts were represented in dense embedding space.
+
+##### 3. Participant Representation Aggregations
+Let $\mathbf{E}_i = [\mathbf{e}_{i,1}, \mathbf{e}_{i,2}, \dots, \mathbf{e}_{i,K_i}]^\top \in \mathbb{R}^{K_i \times 384}$ denote the sequence of $K_i$ chunk embeddings for participant $i$. Two session-level representations were formalized:
+1. **`minilm_l6__mean` ($D=384$)**:
+   $$\boldsymbol{\mu}_i = \frac{1}{K_i} \sum_{k=1}^{K_i} \mathbf{e}_{i,k}$$
+   Captures the global semantic centroid of the clinical interview.
+2. **`minilm_l6__mean_std` ($D=768$)**:
+   $$\boldsymbol{\sigma}_i = \sqrt{\frac{1}{K_i} \sum_{k=1}^{K_i} (\mathbf{e}_{i,k} - \boldsymbol{\mu}_i)^2 + \epsilon}, \quad \mathbf{x}_i = [\boldsymbol{\mu}_i^\top, \boldsymbol{\sigma}_i^\top]^\top$$
+   Concatenates semantic dispersion across interview progression, capturing topic variability, affective shifting, and conversational dynamic drift.
+
+##### 4. Methodological Protocol & Isolation
+In strict adherence to repository leakage prevention protocols:
+- **Preprocessing**: Robust z-score standardization (`StandardScaler`) fitted strictly on training folds.
+- **Classification Protocol**: 5-fold Stratified Cross-Validation on Train ($N=163$). Out-of-fold continuous decision scores $s_i \in \mathbb{R}$ were generated, and the decision threshold was selected via Train-only calibration: $\tau^* = \arg\max_\tau F_1(\text{Train OOF})$. The full Train split was refitted and evaluated in a single pass on held-out Development ($N=56$).
+- **Regression Protocol**: 5-fold Cross-Validation on Train ($N=163$). Regularization strength was searched over a 10-point grid $\alpha \in [10^{-4}, 10^3]$ using Train CV concordance: $\alpha^* = \arg\max_\alpha \text{CCC}(\text{Train CV})$. The full Train split was refitted with $\alpha^*$ and evaluated unclipped on held-out Development ($N=56$).
+- **Test Set Quarantine**: All 56 Test participants were embedded and serialized to disk for future benchmark evaluation, but Test labels remained 100% quarantined. Zero Test metrics were computed or observed.
+
+##### 5. Finalized Phase 17B Benchmark Results
+
+###### Binary Classification (`PHQ_Binary`, Development Split $N=56$, Positive Prevalance $21.4\%$)
+*Model*: `LinearSVC(C=1.0)` with `StandardScaler()`. Calibrated threshold $\tau^*$ derived strictly on Train OOF.
+
+| Representation | Dim | Calibrated $\tau^*$ | Train OOF $F_1$ | Train OOF BalAcc | Dev $F_1$ | Dev BalAcc | Dev ROC-AUC | Dev Precision | Dev Recall | Dev Accuracy | Dev Confusion (TN/FP/FN/TP) |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| `minilm_l6__mean` | 384 | -0.0642 | 0.4557 | 0.6480 | **0.3571** | 0.5833 | 0.5947 | 0.3125 | 0.4167 | 0.6786 | 33 / 11 / 7 / 5 |
+| `minilm_l6__mean_std` | 768 | -0.2294 | 0.5053 | 0.6894 | **0.4000** | 0.6136 | 0.6534 | 0.3333 | 0.5000 | 0.6786 | 32 / 12 / 6 / 6 |
+
+###### Continuous Severity Regression (`PHQ_Score`, Development Split $N=56$, Target $\sigma_y = 5.6625$)
+*Model*: `Ridge(alpha=alpha*)` with `StandardScaler()`. Regularization tuned strictly on Train 5-fold CV. Continuous predictions unclipped.
+
+| Representation | Dim | Tuned $\alpha^*$ | Train CV CCC | Train CV RMSE | Dev CCC | Dev RMSE | Dev MAE | Dev $R^2$ | Dev Pearson $r$ | Pred Spread $\sigma_{\hat{y}}$ | Dev CCC ($\alpha=1.0$) |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| `minilm_l6__mean` | 384 | 10.0 | 0.3946 | 6.4886 | **0.3057** | 6.8949 | 5.4687 | -0.4827 | 0.3069 | 6.0206 | 0.3088 |
+| `minilm_l6__mean_std` | 768 | 0.0001 | 0.3530 | 5.8761 | **0.2719** | 6.3052 | 4.9241 | -0.2399 | 0.2765 | 4.7423 | 0.2726 |
+
+##### 6. Cross-Phase & Cross-Modal Comparative Analysis
+
+| Modality & Phase | Representation | Model & Protocol | Dev Primary | Dev Secondary | Dev Third | Finding / Diagnosis |
+| :--- | :--- | :--- | :---: | :---: | :---: | :--- |
+| **Phase 17A (Classical Text)** | `char_tfidf` | LinearSVC (Calibrated $\tau^*$) | **$F_1 = 0.4571$** | **BalAcc $= 0.6629$** | **AUC $= 0.7159$** | **Top text classification model** |
+| **Phase 7 (Acoustic Top)** | `raw_mfcc__mean` | LinearSVC (Default $\tau=0.0$) | $F_1 = 0.4444$ | BalAcc $= 0.6477$ | AUC $= 0.7045$ | Best acoustic classification model |
+| **Phase 17B (Transformer)** | `minilm_l6__mean_std` | LinearSVC (Calibrated $\tau^*$) | $F_1 = 0.4000$ | BalAcc $= 0.6136$ | AUC $= 0.6534$ | Substantial sensitivity gain over mean pooling |
+| **Phase 17B (Transformer)** | `minilm_l6__mean` | LinearSVC (Calibrated $\tau^*$) | $F_1 = 0.3571$ | BalAcc $= 0.5833$ | AUC $= 0.5947$ | Conservative semantic baseline |
+| **Phase 17A (Classical Text)** | `char_tfidf` | Ridge (Tuned $\alpha^*$) | **$\text{CCC} = 0.3211$** | **$\text{RMSE} = 4.9812$** | **$R^2 = +0.2262$** | **Top regression model repository-wide** |
+| **Phase 17B (Transformer)** | `minilm_l6__mean` | Ridge (Tuned $\alpha^*$) | $\text{CCC} = 0.3057$ | $\text{RMSE} = 6.8949$ | $R^2 = -0.4827$ | Outperforms all single acoustic models in CCC |
+| **Phase 9 (Acoustic Top)** | `raw_mfcc__mean_std` | Ridge (Default $\alpha=1.0$) | $\text{CCC} = 0.2844$ | $\text{RMSE} = 6.2167$ | $R^2 = -0.2053$ | Best acoustic regression model |
+| **Phase 17B (Transformer)** | `minilm_l6__mean_std` | Ridge (Tuned $\alpha^*$) | $\text{CCC} = 0.2719$ | $\text{RMSE} = 6.3052$ | $R^2 = -0.2399$ | Competitive concordance with stable variance |
+
+##### 7. Key Findings & Scientific Takeaways
+1. **Classical Character n-grams Retain Superiority Over Frozen General Transformers**:
+   In binary classification, Phase 17A `char_tfidf` achieves Dev $F_1 = 0.4571$ (ROC-AUC $= 0.7159$), outperforming frozen transformer embeddings (`minilm_l6__mean_std`: $F_1 = 0.4000$, ROC-AUC $= 0.6534$). In continuous regression, `char_tfidf` achieves Dev CCC $= 0.3211$ and RMSE $= 4.9812$ ($R^2 = +0.2262$), outperforming `minilm_l6__mean` (CCC $= 0.3057$) and `minilm_l6__mean_std` (CCC $= 0.2719$).
+   - *Scientific Rationale*: Generic pretrained transformer models (trained on web corpora / sentence similarity pairs) are optimized to map paraphrases to identical semantic centroids. In clinical psychiatric dialogue, however, diagnostic cues reside heavily in conversational disfluency, idiosyncratic speech hesitation tokens, phonetic stuttering transcriptions, and localized grammatical fragmentation. Sub-word character n-grams capture these exact surface-level disfluency cues directly, whereas frozen semantic embeddings smooth them away.
+2. **Value of Temporal Dispersion Pooling (`mean_std`)**:
+   Concatenating chunk-level standard deviation with mean pooling (`minilm_l6__mean_std`, $D=768$) improves classification $F_1$ from $0.3571$ to $0.4000$ (+12.0% relative) and ROC-AUC from $0.5947$ to $0.6534$ (+9.9% relative). This confirms that measuring the spread and drift across conversational turns provides critical signal regarding patient affective lability and cognitive shifting.
+3. **Cross-Modal Dominance Over Acoustic Baselines**:
+   Even with frozen generic embeddings, `minilm_l6__mean` regression CCC ($0.3057$) outperforms the best individual acoustic regression baseline (`raw_mfcc__mean_std` CCC $= 0.2844$), reinforcing that linguistic transcripts contain higher baseline depression concordance than vocal acoustics alone.
+4. **Implications for Phase 17C & Phase 17D**:
+   The gap between frozen general embeddings and domain-specific clinical cues demonstrates that **Phase 17C (clinical fine-tuning / adapter tuning)** will be necessary to adapt contextual attention heads to psychiatric interview dynamics. Furthermore, because acoustic representations capture prosodic flattening and character n-grams capture lexical/hesitation cues, ensembling frozen transformer embeddings with `char_tfidf` and acoustic features in **Phase 17D (Multimodal Fusion)** offers strong complementary potential.
+
+##### 8. Deliverables & Verification Evidence
+- **Feature Extraction & Embedding Store** (`ml-training/dataset/text_embeddings_v1/all_minilm_l6_v2/`):
+  - `train_embeddings_mean.npy` $(163, 384)$ & `train_embeddings_mean_std.npy` $(163, 768)$
+  - `dev_embeddings_mean.npy` $(56, 384)$ & `dev_embeddings_mean_std.npy` $(56, 768)$
+  - `test_embeddings_mean.npy` $(56, 384)$ & `test_embeddings_mean_std.npy` $(56, 768)$ [strictly quarantined]
+  - `train_participant_ids.csv`, `dev_participant_ids.csv`, `test_participant_ids.csv`
+  - `chunk_metadata.csv` (2,163 tracked chunks with exact token and character spans)
+  - `embedding_manifest.json` and `data_validation_report.md`
+- **Benchmark Outputs & Predictions** (`ml-training/outputs/text_embeddings_v1/`):
+  - Serialized participant-level Out-of-Fold ($N=163$) and Development ($N=56$) prediction CSVs for classification and regression
+  - `classification/metrics/final_classification_summary.csv` and `regression/metrics/final_regression_summary.csv`
+  - `reports/model_comparison_table.csv`, `reports/phase_17b_report.md`, and `reports/validation_report.md`
+  - `experiment_manifest.json` documenting exact hyperparameters and random seeds
+- **Unit Test Suite**:
+  - `code/tests/test_text_embeddings_stage17b.py`: 6/6 tests passing (embedding tensor shapes, zero NaN/inf assertions, chunking metadata integrity, bijective split alignment, official Test quarantine compliance, exact numerical metric reproduction).
+  - Combined text test suite (`test_text_baselines_stage17a.py`, `test_text_baselines_finalization.py`, `test_text_embeddings_stage17b.py`): 17/17 tests passing. Full repository test suite: 92/92 tests passing.
+
+
+#### Phase 17B.1: Controlled Hyperparameter Tuning and Verification of Transformer Text Baselines 
+
+##### 1. Forensic Audit & Diagnostic Verification of Default Transformer Heads
+Prior to expanding model complexity or introducing fine-tuning architectures, Phase 17B.1 performed a forensic evaluation of the default prediction heads on frozen `sentence-transformers/all-MiniLM-L6-v2` embeddings (`minilm_l6__mean` [384-d] and `minilm_l6__mean_std` [768-d]):
+1. **Split & Census Integrity**: Confirmed exact bijective alignment across official splits: Train ($N=163$), Development ($N=56$), Test ($N=56$). Zero label leakage across splits; pairwise participant ID intersection is strictly $\emptyset$.
+2. **Participant-Level Isolation**: Transcripts of variable length (192 to 4,734 tokens) were deterministically chunked ($W=250$, $S=190$, 2,163 total chunks) and aggregated strictly to the participant level via session centroids (`mean`) and temporal dispersion vectors (`mean_std`). Cross-validation partitions strictly at the participant level.
+3. **In-Fold Preprocessing**: All feature normalization (`StandardScaler`) is fitted strictly on the training partition of each CV fold and applied downstream to validation/test partitions without refitting.
+4. **Investigation of the Ridge Regularization Disparity (`mean` vs. `mean_std`)**:
+   - In Phase 17B, `minilm_l6__mean` selected $\alpha^*=10.0$ while `minilm_l6__mean_std` selected $\alpha^*=0.0001$.
+   - *Audit Diagnosis*: For `minilm_l6__mean` ($D=384, N_{\text{fold}}=130$), Train CV CCC exhibits a clear, unimodal peak at $\alpha=10.0$ (CCC $= 0.3946$) over $\alpha=10^{-4}$ (CCC $= 0.3862$).
+   - For `minilm_l6__mean_std` ($D=768, N_{\text{fold}}=130$), the system is heavily underdetermined ($D \gg N$). The Train CV CCC response curve across $\alpha \in [10^{-4}, 1.0]$ is completely flat:
+     $$\alpha = 10^{-4}: \text{CCC} = 0.352951 \quad\text{vs.}\quad \alpha = 1.0: \text{CCC} = 0.352851$$
+     The variation across 4 orders of magnitude is merely $0.00010$ ($0.01\%$).
+   - Ascending grid evaluation selected $\alpha=10^{-4}$ purely as a tie-break artifact. At $\alpha \le 10^{-4}$, Scipy emitted `LinAlgWarning: An ill-conditioned matrix detected: slice 0 has rcond = 1.78e-9` (condition number $\approx 10^9$). At $\alpha \ge 1.0$, the condition number stabilizes without warnings, while Development performance is essentially identical (Dev CCC $0.2726$ vs. $0.2719$).
+
+##### 2. Controlled Hyperparameter Search Protocols
+
+###### Classification Head Tuning (`LinearSVC`)
+- **Target**: `PHQ_Binary` ($\ge 10$).
+- **Search Space**: Regularization penalty $C \in [0.001, 0.01, 0.1, 1.0, 10.0, 100.0]$ and class weighting `class_weight` $\in [\text{None}, \text{"balanced"}]$.
+- **Validation Protocol**: 5-Fold Stratified Cross-Validation on Train ($N=163$).
+- **Threshold Calibration Protocol**: For each hyperparameter candidate $(C, w)$, continuous decision scores $s_i \in \mathbb{R}$ were collected across out-of-fold validation splits. A candidate decision threshold was selected strictly from Train OOF scores:
+  $$\tau^*(C, w) = \arg\max_\tau F_1(y_{\text{train}}, \mathbb{I}(s_{\text{oof}} > \tau))$$
+- **Model Selection Criterion**: Configuration selected strictly on Train OOF: $\arg\max_{(C, w)} F_1(\text{Train OOF})$, with Train OOF ROC-AUC as tie-breaker.
+- **Development Evaluation**: Frozen $(C^*, w^*, \tau^*)$ refitted on full Train ($N=163$) and evaluated in a single pass on held-out Development ($N=56$).
+
+###### Regression Head Tuning (`Ridge`, `ElasticNet`, `Linear SVR`, `RBF SVR`)
+- **Target**: Continuous severity score `PHQ_Score` ($\in [0, 24]$). Unclipped floating-point predictions.
+- **Model A (Ridge Regression)**: Regularization grid $\alpha \in [10^{-4}, 10^{-3}, 10^{-2}, 0.05, 0.1, 0.5, 1.0, 5.0, 10.0, 50.0, 100.0, 500.0, 1000.0]$ (13 points).
+- **Model B (ElasticNet Regression)**: Joint $L_1/L_2$ regularization grid over $\alpha \in [0.001, 0.01, 0.05, 0.1, 0.5, 1.0, 5.0, 10.0]$ and $l_1 \in [0.1, 0.3, 0.5, 0.7, 0.9]$ (40 points).
+- **Model C (Linear Support Vector Regression)**: Penalty $C \in [0.01, 0.05, 0.1, 0.5, 1.0, 5.0, 10.0]$ and margin tolerance $\epsilon \in [0.0, 0.1, 0.2, 0.5, 1.0]$ (35 points).
+- **Model D (Nonlinear RBF Support Vector Regression)**: Kernel SVR over $C \in [0.1, 0.5, 1.0, 5.0, 10.0, 50.0, 100.0]$, $\epsilon \in [0.05, 0.1, 0.2, 0.5, 1.0]$, and kernel coefficient $\gamma \in [\text{"scale"}, 10^{-4}, 10^{-3}, 10^{-2}, 10^{-1}]$ (175 points).
+- **Selection Criterion**: Optimal parameters selected strictly on Train 5-fold CV: $\arg\max_{\text{params}} \text{CCC}(\text{Train CV})$.
+- **Development Evaluation**: Refitted with optimal hyperparameters on full Train ($N=163$) and evaluated on Development ($N=56$).
+
+###### Statistical Uncertainty & Bootstrap Protocol
+To assess the epistemic variance inherent in small validation cohorts ($N_{\text{Dev}}=56$), non-parametric participant-level bootstrap confidence intervals (95% CI, $B=1,000$ resamples) were computed for primary metrics ($F_1$, Balanced Accuracy, ROC-AUC, CCC, RMSE).
+
+##### 3. Finalized Phase 17B.1 Benchmark Results
+
+###### Binary Classification (`PHQ_Binary`, Development Split $N=56$, Positive Prevalence $21.4\%$)
+*Model*: `LinearSVC` with in-fold `StandardScaler()`. Calibrated threshold $\tau^*$ derived strictly on Train OOF.
+
+| Representation | Dim | Optimal Hyperparameters | Calibrated $\tau^*$ | Train OOF $F_1$ | Train OOF BalAcc | Train OOF AUC | Dev $F_1$ [95% CI] | Dev BalAcc [95% CI] | Dev ROC-AUC [95% CI] | Dev PR-AUC | Dev Precision | Dev Recall | Dev Accuracy | Dev Confusion (TN/FP/FN/TP) |
+| :--- | :---: | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| `minilm_l6__mean` | 384 | $C=0.001$, `w=balanced` | -0.2047 | 0.4741 | 0.6705 | 0.6973 | **0.4000** [0.2000, 0.5714] | 0.6023 [0.4505, 0.7391] | 0.6117 [0.4461, 0.7836] | 0.3110 | 0.2727 | 0.7500 | 0.5179 | 20 / 24 / 3 / 9 |
+| `minilm_l6__mean_std` | 768 | $C=0.001$, `w=balanced` | -0.1420 | 0.5246 | 0.7221 | 0.7387 | **0.4390** [0.2439, 0.6087] | 0.6477 [0.5065, 0.7879] | **0.7064** [0.5415, 0.8568] | 0.3847 | 0.3103 | 0.7500 | 0.5893 | 24 / 20 / 3 / 9 |
+
+*(Note on unweighted variant: When evaluating $C=0.001$ with `class_weight=None`, `minilm_l6__mean_std` achieves Dev $F_1 = \mathbf{0.4615}$ and Balanced Accuracy $= \mathbf{0.6705}$, outperforming `char_tfidf` on point estimates, though the Train OOF tie-breaker protocol selected `class_weight='balanced'` due to higher Train OOF ROC-AUC of $0.7387$ vs. $0.7372$.)*
+
+###### Continuous Severity Regression (`PHQ_Score`, Development Split $N=56$, Target $\sigma_y = 5.6625$)
+*Models*: In-fold `StandardScaler()`. Hyperparameters tuned strictly on Train 5-fold CV CCC. Predictions strictly unclipped.
+
+| Representation | Head Architecture | Optimal Hyperparameters | Train CV CCC | Train CV RMSE | Train CV MAE | Dev CCC [95% CI] | Dev RMSE [95% CI] | Dev MAE | Dev $R^2$ | Dev Pearson $r$ | Pred Spread $\sigma_{\hat{y}}$ | Target Spread $\sigma_y$ | Spread Ratio |
+| :--- | :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| `minilm_l6__mean` | **RBF SVR** | $C=100.0, \epsilon=0.05, \gamma=0.001$ | 0.3803 | 5.6537 | 4.5531 | **0.3707** [0.1593, 0.5321] | **5.4370** [4.5016, 6.2657] | 4.4236 | **+0.0781** | **0.4013** | 3.8315 | 5.6625 | 0.6767 |
+| `minilm_l6__mean` | **Linear SVR** | $C=0.5, \epsilon=1.0, \gamma=\text{scale}$ | 0.4056 | 6.3212 | 5.0285 | **0.3231** [0.1077, 0.4946] | 6.7950 [5.6236, 7.8413] | 5.4342 | -0.4400 | 0.3239 | 6.0079 | 5.6625 | 1.0610 |
+| `minilm_l6__mean` | **Ridge** | $\alpha=10.0$ | 0.3946 | 6.4886 | 5.1219 | 0.3057 [0.0780, 0.4832] | 6.8949 [5.7852, 7.9666] | 5.4687 | -0.4827 | 0.3069 | 6.0206 | 5.6625 | 1.0632 |
+| `minilm_l6__mean` | **ElasticNet** | $\alpha=0.1, l_1=0.1$ | 0.3915 | 6.3688 | 5.0618 | 0.2905 [0.0595, 0.4787] | 6.7156 [5.5944, 7.7286] | 5.3169 | -0.4066 | 0.2924 | 5.5760 | 5.6625 | 0.9847 |
+| `minilm_l6__mean_std` | **ElasticNet** | $\alpha=0.1, l_1=0.9$ | **0.4406** | 5.7423 | 4.6636 | **0.2962** [0.0396, 0.5304] | 6.4014 [5.0941, 7.6536] | 5.0305 | -0.2780 | 0.2989 | 5.0954 | 5.6625 | 0.8999 |
+| `minilm_l6__mean_std` | **Linear SVR** | $C=0.1, \epsilon=0.2, \gamma=\text{scale}$ | 0.3537 | 5.8313 | 4.6026 | 0.2825 [0.0321, 0.4925] | 6.1965 [4.9182, 7.2785] | 4.8524 | -0.1975 | 0.2886 | 4.6258 | 5.6625 | 0.8169 |
+| `minilm_l6__mean_std` | **RBF SVR** | $C=100.0, \epsilon=0.05, \gamma=0.0001$ | 0.3229 | 5.6878 | 4.5451 | 0.2808 [0.0640, 0.4748] | 5.7577 [4.5564, 6.7732] | 4.4312 | -0.0339 | 0.3128 | 3.6533 | 5.6625 | 0.6452 |
+| `minilm_l6__mean_std` | **Ridge** | $\alpha=0.0001$ | 0.3530 | 5.8761 | 4.6318 | 0.2719 [0.0202, 0.4875] | 6.3052 [5.0021, 7.4091] | 4.9241 | -0.2399 | 0.2765 | 4.7423 | 5.6625 | 0.8375 |
+
+##### 4. Cross-Phase & Cross-Modal Comparative Analysis
+
+| Modality & Phase | Representation | Model & Protocol | Dev Primary Metric | Dev Secondary Metric | Dev Third Metric | Methodological & Diagnostic Assessment |
+| :--- | :--- | :--- | :---: | :---: | :---: | :--- |
+| **Phase 17B.1 (Tuned Text)** | `minilm_l6__mean` | **RBF SVR** | **$\text{CCC} = \mathbf{0.3707}$** | **$\text{RMSE} = 5.4370$** | **$R^2 = +0.0781$** | **New repository record for continuous severity estimation** |
+| **Phase 17B.1 (Tuned Text)** | `minilm_l6__mean` | **Linear SVR** | **$\text{CCC} = 0.3231$** | $\text{RMSE} = 6.7950$ | $R^2 = -0.4400$ | Robust linear baseline; outconcordances Ridge |
+| **Phase 17A (Classical Text)** | `char_tfidf` | Ridge (Tuned $\alpha^*$) | $\text{CCC} = 0.3211$ | $\text{RMSE} = 4.9812$ | $R^2 = +0.2262$ | Leading classical text regression baseline |
+| **Phase 17B.1 (Tuned Text)** | `minilm_l6__mean` | Ridge (Tuned $\alpha^*=10.0$) | $\text{CCC} = 0.3057$ | $\text{RMSE} = 6.8949$ | $R^2 = -0.4827$ | Stable linear regularized head |
+| **Phase 17B.1 (Tuned Text)** | `minilm_l6__mean_std` | ElasticNet (Tuned $\alpha^*, l_1^*$) | $\text{CCC} = 0.2962$ | $\text{RMSE} = 6.4014$ | $R^2 = -0.2780$ | Outperforms Ridge on temporal dispersion representation |
+| **Phase 9 (Acoustic Top)** | `raw_mfcc__mean_std` | Ridge (Default $\alpha=1.0$) | $\text{CCC} = 0.2844$ | $\text{RMSE} = 6.2167$ | $R^2 = -0.2053$ | Best single-modality acoustic regression baseline |
+| **Phase 17B (Default Text)** | `minilm_l6__mean_std` | Ridge (Default $\alpha^*$) | $\text{CCC} = 0.2719$ | $\text{RMSE} = 6.3052$ | $R^2 = -0.2399$ | Unconditioned Ridge on flat Train CV response |
+| **Phase 17A (Classical Text)** | `char_tfidf` | LinearSVC (Calibrated $\tau^*$) | **$F_1 = 0.4571$** | **BalAcc $= 0.6629$** | **ROC-AUC $= 0.7159$** | Top text classification baseline on point F1 |
+| **Phase 7 (Acoustic Top)** | `raw_mfcc__mean` | LinearSVC (Default $\tau=0.0$) | $F_1 = 0.4444$ | BalAcc $= 0.6477$ | ROC-AUC $= 0.7045$ | Best acoustic classification baseline |
+| **Phase 17B.1 (Tuned Text)** | `minilm_l6__mean_std` | LinearSVC (Tuned $C^*=0.001$) | **$F_1 = 0.4390$** | **BalAcc $= 0.6477$** | **ROC-AUC $= 0.7064$** | Competitive classification; strong rank discrimination |
+| **Phase 17B.1 (Tuned Text)** | `minilm_l6__mean` | LinearSVC (Tuned $C^*=0.001$) | $F_1 = 0.4000$ | BalAcc $= 0.6023$ | ROC-AUC $= 0.6117$ | Marked improvement over default $C=1.0$ ($F_1: 0.3571$) |
+| **Phase 17B (Default Text)** | `minilm_l6__mean_std` | LinearSVC (Default $C=1.0$) | $F_1 = 0.4000$ | BalAcc $= 0.6136$ | ROC-AUC $= 0.6534$ | Under-regularized default head |
+
+##### 5. Scientific Findings & Clinical Takeaways
+1. **Nonlinear Support Vector Regression Sets New State-of-the-Art**:
+   - Equipping frozen `minilm_l6__mean` representations with an RBF kernel Support Vector Regressor ($C=100.0, \epsilon=0.05, \gamma=0.001$) achieved **Dev $\text{CCC} = \mathbf{0.3707}$**, surpassing Phase 17A `char_tfidf` ($\text{CCC} = 0.3211$) and Phase 9 acoustic baselines ($\text{CCC} = 0.2844$).
+   - *Clinical / Theoretical Rationale*: Dense semantic centroids from contextual transformers capture psychiatric depressive content effectively, but the mapping from semantic latent space to the continuous PHQ-9 scale is intrinsically nonlinear. An $\epsilon$-insensitive loss with Gaussian RBF kernels acts as a local affective neighborhood regressor, ignoring minor conversational fluctuations within the margin ($\epsilon=0.05$) while fitting localized clusters of depressive symptom severity.
+2. **Critical Necessity of Strong Regularization ($C=0.001$)**:
+   - For classification on dense 768-dimensional embeddings, standard default regularization ($C=1.0$) overfits the training partition. Tuning $C$ down to $0.001$ constrained the margin hyperplane, boosting Train OOF $F_1$ from $0.5053$ to **$0.5246$** (ROC-AUC $= 0.7387$), and lifting Development ROC-AUC from $0.6534$ to **$0.7064$**.
+3. **Statistical Uncertainty on Small Validation Cohorts ($N_{\text{Dev}}=56$)**:
+   - Bootstrap 95% confidence intervals reveal substantial estimation uncertainty ($F_1$ 95% CI: $[0.2439, 0.6087]$; CCC 95% CI: $[0.1593, 0.5321]$).
+   - Because the 95% CIs of `minilm_l6__mean_std` LinearSVC and `char_tfidf` LinearSVC overlap heavily, claiming definitive superiority of either modality would be methodologically unsound. Both representations capture valid, complementary signals.
+4. **Readiness for Phase 17C & Phase 17D**:
+   - The success of nonlinear kernel regression and regularized linear heads confirms that frozen transformer embeddings contain high-fidelity psychiatric diagnostic information.
+   - These representations are fully validated to advance to **Phase 17C** (deep learning / LoRA fine-tuning) and **Phase 17D** (multimodal fusion with acoustic features).
+
+##### 6. Deliverables & Verification Evidence
+- **Benchmark Code** (`ml-training/code/text_embeddings_tuned_v1/`):
+  - `tune_embeddings.py` (complete grid search, in-fold scaling, Train OOF calibration, bootstrap estimation).
+- **Output Artifacts** (`ml-training/outputs/text_embeddings_tuned_v1/`):
+  - `audit/audit_findings.md` (10-point audit verifying split integrity and diagnosing Ridge conditioning).
+  - `reports/phase_17b1_tuning_report.md` and `reports/model_comparison_table.csv`.
+  - `classification/metrics/final_classification_summary.csv` and `regression/metrics/final_regression_summary.csv`.
+  - Serialized participant-level Out-of-Fold ($N=163$) and Development ($N=56$) predictions across all models.
+  - Full grid search records across all parameter combinations in `grid_results/`.
+- **Unit Test Suite**:
+  - `code/tests/test_text_embeddings_tuned_stage17b1.py`: 4/4 tests passing (artifact existence, split alignment, Test quarantine, exact metric reproduction).
+  - Combined text test suite (`test_text_baselines_stage17a.py`, `test_text_baselines_finalization.py`, `test_text_embeddings_stage17b.py`, `test_text_embeddings_tuned_stage17b1.py`): 21/21 tests passing. Full repository test suite: 96/96 tests passing.
+
+
+#### Phase 17C: Lightweight Deep Learning on Frozen Transformer Embeddings: Audit, Baseline, Tuning, and Final Comparison
+
+##### 1. Forensic Audit & Resolution of Prior Discrepancies
+Before training neural prediction heads, Phase 17C conducted a forensic audit of the Phase 17B and Phase 17B.1 findings (`ml-training/outputs/text_mlp_v1/audit/audit_findings.md`):
+1. **Classification F1 Discrepancy Resolution ($0.4615$ vs $0.4390$)**:
+   - In Phase 17B.1, hyperparameter search on `minilm_l6__mean_std` yielded an exact Train OOF $F_1$ tie of $0.5246$ between two configurations:
+     - $C=0.001$, `class_weight=None` $\rightarrow$ Train OOF ROC-AUC $= 0.7372$, Dev $F_1 = 0.4615$.
+     - $C=0.001$, `class_weight='balanced'` $\rightarrow$ Train OOF ROC-AUC $= 0.7387$, Dev $F_1 = 0.4390$.
+   - Following the pre-declared tie-breaker protocol (higher Train OOF ROC-AUC), the `class_weight='balanced'` model was formally selected and saved to the official artifact store (`dev_predictions_classification__mean_std__linear_svc__tuned.csv`). Both models are verified and 100% reproducible.
+2. **Regression Benchmark Verification**:
+   - Recomputation from saved participant predictions confirmed that Nonlinear RBF SVR on `minilm_l6__mean` ($C=100.0, \epsilon=0.05, \gamma=0.001$) achieves Dev $\text{CCC} = \mathbf{0.3707}$ ($\text{RMSE} = \mathbf{5.4370}$, $R^2 = +0.0781$, Pearson $r = 0.4013$).
+   - Phase 17A `char_tfidf` Ridge reproduces at Dev $\text{CCC} = 0.3211$ ($\text{RMSE} = 4.9812$, $R^2 = +0.2262$).
+
+##### 2. Architecture of Lightweight Neural Prediction Heads
+To evaluate whether neural networks can outperform convex classical heads without full transformer fine-tuning, modular Multi-Layer Perceptron (MLP) architectures (`code/text_mlp_v1/mlp_model.py`) were designed:
+- **Input Dimension**: $D=384$ for `minilm_l6__mean` or $D=768$ for `minilm_l6__mean_std` from frozen `sentence-transformers/all-MiniLM-L6-v2`.
+- **Layer Stacks**:
+  - 1-Hidden-Layer: Linear($D, H$) $\to$ LayerNorm($H$) $\to$ ReLU $\to$ Dropout($p$) $\to$ Linear($H, 1$).
+  - 2-Hidden-Layer: Linear($D, H_1$) $\to$ LayerNorm($H_1$) $\to$ ReLU $\to$ Dropout($p$) $\to$ Linear($H_1, H_2$) $\to$ LayerNorm($H_2$) $\to$ ReLU $\to$ Dropout($p$) $\to$ Linear($H_2, 1$).
+- **Hidden Capacities**: $H \in \{32, 64, 128\}$ for 1-layer; $[H_1, H_2] \in \{[64, 32], [128, 64]\}$ for 2-layer.
+- **Normalization & Regularization**: Pre-activation LayerNorm stabilizes hidden activations across varying chunk length averages; Dropout ($p \in [0.0, 0.4]$) and AdamW weight decay ($10^{-4}$) prevent co-adaptation.
+- **Loss Formulations**:
+  - Binary Classification: `BCEWithLogitsLoss` with positive class weighting $w_{\text{pos}} = \frac{N - N_{\text{pos}}}{N_{\text{pos}}} \approx 3.66$.
+  - Continuous Regression: `MSELoss` evaluating raw continuous severity estimates without clamping.
+
+##### 3. Controlled Hyperparameter Tuning & Cross-Validation Protocols
+All training and evaluation strictly adhered to repository isolation standards:
+- **Participant-Level Stratified Partitions**: 5-Fold Cross-Validation on Train ($N=163$). Zero participant overlap across folds; feature scaling (`StandardScaler`) fitted strictly on training fold indices.
+- **Early Stopping Protocol**: Validation loss within each fold monitored with patience of 15 epochs (maximum 100 epochs). Checkpoints restored to the lowest validation loss state.
+- **Classification Threshold Calibration**: Out-of-fold continuous logits $s_i \in \mathbb{R}$ collected across validation folds; decision threshold selected strictly from Train OOF:
+  $$\tau^* = \arg\max_\tau F_1(y_{\text{train}}, \mathbb{I}(s_{\text{oof}} > \tau))$$
+- **Full Train Refit Strategy**: Full Train ($N=163$) refit using the median best epoch derived from the 5 training folds, preventing development label leakage during early stopping.
+- **Held-Out Development Single Pass**: Frozen refit model evaluated in a single pass on Development ($N=56$).
+- **Strict Test Quarantine**: Official Test split ($N=56$) remained strictly quarantined (0 exposure).
+
+##### 4. Initial Baseline Performance Across Random Seeds
+To quantify initialization variance prior to tuning, a 1-layer baseline (64 hidden units, ReLU, dropout 0.2, AdamW, lr=0.001, batch size 16) was trained across 5 random seeds ($42, 43, 44, 45, 46$):
+
+| Representation | Task | Architecture | Train OOF Primary (Mean $\pm$ Std) | Dev Primary (Mean $\pm$ Std) | Best Seed Dev Primary | Dev Secondary 1 (Mean) | Dev Secondary 2 (Mean) | Primary Metric |
+| :--- | :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: |
+| `minilm_l6__mean` | Classification | MLP(64) | $0.5056 \pm 0.0170$ | $0.3955 \pm 0.0304$ | 0.4000 | Bal Acc: 0.6008 | ROC-AUC: 0.6205 | F1 |
+| `minilm_l6__mean_std` | Classification | MLP(64) | $0.5418 \pm 0.0331$ | $0.3386 \pm 0.0423$ | 0.4103 | Bal Acc: 0.5667 | ROC-AUC: 0.6621 | F1 |
+| `minilm_l6__mean` | Regression | MLP(64) | $0.3941 \pm 0.0331$ | $0.1949 \pm 0.0300$ | 0.1758 | RMSE: 6.0966 | $R^2$: -0.1593 | CCC |
+| `minilm_l6__mean_std` | Regression | MLP(64) | $0.3879 \pm 0.0381$ | $0.2629 \pm 0.0322$ | 0.2940 | RMSE: 5.6823 | $R^2$: -0.0073 | CCC |
+
+##### 5. Controlled Hyperparameter Tuning Benchmark Results
+Hyperparameter grid search explored 80 configurations per representation/task across hidden layers, capacities, dropout rates, and learning rates. Configurations were selected strictly on Train 5-fold CV:
+
+| Task | Representation | Selected Architecture & Hyperparameters | Train CV Primary | Dev Primary | Dev 95% Bootstrap CI | Dev Secondary 1 | Dev Secondary 2 | Dev Precision | Dev Recall | Dev Accuracy |
+| :--- | :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| **Classification** | `minilm_l6__mean` | dims=[32], drop=0.0, lr=0.0003, bs=16 | 0.5660 | **0.3684** | $[0.1667, 0.5501]$ | Bal Acc: 0.5758 | ROC-AUC: 0.6515 | 0.3043 | 0.5833 | 0.6250 |
+| **Classification** | `minilm_l6__mean_std` | dims=[32], drop=0.2, lr=0.0003, bs=16 | 0.5882 | **0.3200** | $[0.0870, 0.5385]$ | Bal Acc: 0.5644 | ROC-AUC: 0.6155 | 0.2857 | 0.3333 | 0.6964 |
+| **Regression** | `minilm_l6__mean` | dims=[64], drop=0.2, lr=0.0010, bs=16 | 0.4246 | **0.1682** | $[-0.0624, 0.3747]$ | RMSE: 6.1393 | $R^2$: -0.1755 | MAE: 4.8872 | Pearson $r$: 0.2036 | Spread $\sigma_{\hat{y}}$: 3.5188 |
+| **Regression** | `minilm_l6__mean_std` | dims=[32], drop=0.2, lr=0.0010, bs=16 | 0.3947 | **0.2118** | $[-0.0325, 0.4363]$ | RMSE: 5.8255 | $R^2$: -0.0584 | MAE: 4.5471 | Pearson $r$: 0.2443 | Spread $\sigma_{\hat{y}}$: 3.7371 |
+
+##### 6. Cross-Phase & Cross-Modal Comparative Analysis
+The complete cross-modal benchmark comparison is summarized below:
+
+| Group | Task | Modality | Representation | Model Architecture | Tuning & Hyperparameters | Train CV Primary | Dev Primary | Dev 95% Bootstrap CI | Dev Secondary 1 | Dev Secondary 2 | Primary Metric |
+| :--- | :--- | :--- | :--- | :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: |
+| **Group A (MLP)** | Classification | Text | `minilm_l6__mean` | MLP(64) [Initial] | 1-layer 64-dim, drop=0.2, lr=0.001 (5 seeds) | $0.5056 \pm 0.0170$ | $0.3955 \pm 0.0304$ | Multi-Seed Mean | Bal Acc: 0.6008 | ROC-AUC: 0.6205 | F1 |
+| **Group A (MLP)** | Classification | Text | `minilm_l6__mean` | MLP([32]) [Tuned] | 1-layer 32-dim, drop=0.0, lr=0.0003, bs=16 | 0.5660 | 0.3684 | $[0.1667, 0.5501]$ | Bal Acc: 0.5758 | ROC-AUC: 0.6515 | F1 |
+| **Group A (MLP)** | Regression | Text | `minilm_l6__mean` | MLP(64) [Initial] | 1-layer 64-dim, drop=0.2, lr=0.001 (5 seeds) | $0.3941 \pm 0.0331$ | $0.1949 \pm 0.0300$ | Multi-Seed Mean | RMSE: 6.0966 | $R^2$: -0.1593 | CCC |
+| **Group A (MLP)** | Regression | Text | `minilm_l6__mean` | MLP([64]) [Tuned] | 1-layer 64-dim, drop=0.2, lr=0.0010, bs=16 | 0.4246 | 0.1682 | $[-0.0624, 0.3747]$ | RMSE: 6.1393 | $R^2$: -0.1755 | CCC |
+| **Group A (MLP)** | Classification | Text | `minilm_l6__mean_std` | MLP(64) [Initial] | 1-layer 64-dim, drop=0.2, lr=0.001 (5 seeds) | $0.5418 \pm 0.0331$ | $0.3386 \pm 0.0423$ | Multi-Seed Mean | Bal Acc: 0.5667 | ROC-AUC: 0.6621 | F1 |
+| **Group A (MLP)** | Classification | Text | `minilm_l6__mean_std` | MLP([32]) [Tuned] | 1-layer 32-dim, drop=0.2, lr=0.0003, bs=16 | 0.5882 | 0.3200 | $[0.0870, 0.5385]$ | Bal Acc: 0.5644 | ROC-AUC: 0.6155 | F1 |
+| **Group A (MLP)** | Regression | Text | `minilm_l6__mean_std` | MLP(64) [Initial] | 1-layer 64-dim, drop=0.2, lr=0.001 (5 seeds) | $0.3879 \pm 0.0381$ | $0.2629 \pm 0.0322$ | Multi-Seed Mean | RMSE: 5.6823 | $R^2$: -0.0073 | CCC |
+| **Group A (MLP)** | Regression | Text | `minilm_l6__mean_std` | MLP([32]) [Tuned] | 1-layer 32-dim, drop=0.2, lr=0.0010, bs=16 | 0.3947 | 0.2118 | $[-0.0325, 0.4363]$ | RMSE: 5.8255 | $R^2$: -0.0584 | CCC |
+| **Group B (Classical)** | Classification | Text | `minilm_l6__mean_std` | LinearSVC [Phase 17B.1] | $C=0.001$, `class_weight='balanced'`, $\tau^*=-0.1420$ | 0.5246 | 0.4390 | $[0.2439, 0.6087]$ | Bal Acc: 0.6477 | ROC-AUC: 0.7064 | F1 |
+| **Group B (Classical)** | Classification | Text | `char_tfidf` | LinearSVC [Phase 17A] | $C=1.0$, `class_weight=None`, $\tau^*=-0.5432$ | 0.4815 | **0.4571** | $[0.2222, 0.6897]$ | Bal Acc: 0.6629 | ROC-AUC: **0.7159** | F1 |
+| **Group B (Classical)** | Regression | Text | `minilm_l6__mean` | RBF SVR [Phase 17B.1] | $C=100.0, \epsilon=0.05, \gamma=0.001$ | 0.3803 | **0.3707** | $[0.1593, 0.5321]$ | RMSE: 5.4370 | $R^2$: +0.0781 | CCC |
+| **Group B (Classical)** | Regression | Text | `minilm_l6__mean` | Linear SVR [Phase 17B.1] | $C=0.5, \epsilon=1.0, \gamma=\text{scale}$ | 0.4056 | 0.3231 | $[0.1077, 0.4946]$ | RMSE: 6.7950 | $R^2$: -0.4400 | CCC |
+| **Group B (Classical)** | Regression | Text | `char_tfidf` | Ridge [Phase 17A] | $\alpha=0.0001$ | 0.1349 | 0.3211 | $[0.0712, 0.5480]$ | RMSE: **4.9812** | $R^2$: **+0.2262** | CCC |
+| **Group C (Acoustic)** | Classification | Audio | `raw_mfcc__mean` | LinearSVC [Phase 7] | $C=1.0, \tau=0.0$ | 0.2716 | 0.4444 | $[0.1818, 0.6667]$ | Bal Acc: 0.6477 | ROC-AUC: 0.7045 | F1 |
+| **Group C (Acoustic)** | Regression | Audio | `raw_mfcc__mean_std` | Ridge [Phase 9] | $\alpha=1.0$ | 0.2174 | 0.2844 | $[-0.0050, 0.5210]$ | RMSE: 6.2167 | $R^2$: -0.2053 | CCC |
+
+##### 7. Statistical Uncertainty & Bootstrap Confidence Intervals ($N_{\text{Dev}}=56$)
+Participant-level non-parametric bootstrap estimation ($B=1,000$ resamples) reveals wide confidence intervals across all model families on the held-out Development cohort:
+- **Classification $F_1$ 95% CIs**:
+  - Tuned MLP (`minilm_l6__mean`): $[0.1667, 0.5501]$
+  - Tuned MLP (`minilm_l6__mean_std`): $[0.0870, 0.5385]$
+  - Tuned LinearSVC (`minilm_l6__mean_std`): $[0.2439, 0.6087]$
+  - Phase 17A `char_tfidf` LinearSVC: $[0.2222, 0.6897]$
+- **Regression CCC 95% CIs**:
+  - Tuned MLP (`minilm_l6__mean`): $[-0.0624, 0.3747]$
+  - Tuned MLP (`minilm_l6__mean_std`): $[-0.0325, 0.4363]$
+  - Phase 17B.1 RBF SVR (`minilm_l6__mean`): $[0.1593, 0.5321]$
+  - Phase 17A `char_tfidf` Ridge: $[0.0712, 0.5480]$
+- *Takeaway*: Although classical convex models achieve higher central metric point estimates, the overlap across 95% bootstrap intervals indicates that performance differences on $N_{\text{Dev}}=56$ fall within statistical estimation error. Both linear classical and neural models capture genuine clinical signal above chance.
+
+##### 8. Scientific Findings, Mechanistic Analysis & Empirical Takeaways
+1. **Classical Models Outperform Standalone Neural MLP Heads**:
+   - In continuous severity regression, **Phase 17B.1 Nonlinear RBF SVR retains the repository-wide record at Dev $\text{CCC} = \mathbf{0.3707}$**, outperforming the best tuned MLP ($\text{CCC} = 0.2118$).
+   - In binary classification, **Phase 17A `char_tfidf` LinearSVC ($F_1 = \mathbf{0.4571}$) and Phase 17B.1 LinearSVC ($F_1 = 0.4390$)** maintain clear superiority over tuned MLPs ($F_1 = 0.3684$ and $0.3200$).
+2. **Mechanistic Explanation for Neural Head Underperformance**:
+   - *Sample Scarcity vs. Non-Convex Gradient Variance*: In clinical cohorts of limited size ($N_{\text{Train}}=163$, 35 positive cases), neural networks trained via mini-batch SGD/AdamW exhibit high gradient variance. Despite dropout and early stopping, MLPs overfit to training fold patterns (Train CV $F_1$ reached $0.5882$ and Train CV CCC reached $0.4246$, but generalization to Development degraded).
+   - *Convex Regularization Advantage*: In contrast, $L_2$-regularized LinearSVC and Support Vector Regression formulate convex optimization problems with globally optimal margin bounds, providing stronger resistance to small-sample noise.
+3. **Hyperparameter Over-Tuning on Small Folds**:
+   - The initial 1-layer baseline (64 units, lr=0.001) achieved multi-seed Dev $F_1 = 0.3955$ and Dev CCC $= 0.2629$, outperforming the "tuned" configurations on Development. Grid search selected narrower models ([32] units) with lower learning rate (0.0003) that maximized Train OOF scores at the expense of held-out generalization, exemplifying CV selection noise on small cohorts.
+4. **Architectural Value of Neural Heads for Phase 17D (Multimodal Fusion)**:
+   - While standalone MLPs do not exceed classical heads on isolated text embeddings, the PyTorch neural prediction head provides **end-to-end differentiability**. Classical scikit-learn models cannot be integrated into cross-modal attention graphs where gradients must flow jointly between acoustic and linguistic feature extractors. The MLP architecture established in Phase 17C serves as the critical differentiable bridge for Phase 17D.
+
+##### 9. Deliverables & Verification Evidence
+- **Benchmark Code** (`ml-training/code/text_mlp_v1/`):
+  - `mlp_model.py`: Modular `TextMLPHead` supporting 1 and 2 hidden layers, LayerNorm, Dropout, and checkpoint serialization.
+  - `train_eval.py`: In-fold scaling, BCE/MSE loss, early stopping, Train OOF calibration, bootstrap estimation.
+  - `run_experiments.py`: Full orchestrator executing 5-seed baselines, grid search, evaluation, plotting, and reporting.
+- **Output Artifacts** (`ml-training/outputs/text_mlp_v1/`):
+  - `audit/audit_findings.md` and `reports/audit_report.md` (forensic audit of prior phases).
+  - `reports/phase_17c_report.md` and `reports/model_comparison_table.csv`.
+  - `metrics/initial_baselines_summary.csv` and `cv_results/full_tuning_summary.csv`.
+  - Diagnostic loss curves (`plots/loss_curves_tuned_mlp.png`) and regression scatter plots (`plots/regression_scatter_dev.png`).
+  - Serialized participant-level Out-of-Fold ($N=163$) and Development ($N=56$) prediction CSVs for all initial and tuned models.
+- **Unit Test Suite**:
+  - `code/tests/test_text_mlp_stage17c.py`: 6/6 tests passing (deliverable existence, split alignment, Test quarantine, metric reproduction, continuous unclipped regression, manifest integrity).
+  - Full repository test suite: **102/102 tests passing** (`python -m pytest --import-mode=importlib ml-training/code/tests -v`).
+
+### 21.3 Methodological Guards & Data Leakage Prevention
+All text and multimodal models in Phase 17 adhere strictly to established validation rules:
+- Text vocabulary selection, IDF weight calculation, scaler fitting, and threshold selection are conducted strictly inside training folds or on Train out-of-fold predictions.
+- The official Test split ($N=56$) remains strictly quarantined until final benchmark release.
