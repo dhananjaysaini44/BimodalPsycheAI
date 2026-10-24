@@ -41,7 +41,19 @@ For visual workflows and data structures, see [`docs/diagrams/`](docs/diagrams/)
   <img src="https://img.shields.io/badge/Pandas-2.2.2-150458.svg?style=flat&logo=pandas&logoColor=white" alt="Pandas" />
   <img src="https://img.shields.io/badge/NumPy-1.26.4-013243.svg?style=flat&logo=numpy&logoColor=white" alt="NumPy" />
   <img src="https://img.shields.io/badge/Matplotlib-3.9.0-11557C.svg?style=flat&logo=python&logoColor=white" alt="Matplotlib" />
+  <img src="https://img.shields.io/badge/Seaborn-0.13.2-4C72B0.svg?style=flat&logo=python&logoColor=white" alt="Seaborn" />
+  <img src="https://img.shields.io/badge/Plotly-7.1.0-3F4F75.svg?style=flat&logo=plotly&logoColor=white" alt="Plotly" />
   <img src="https://img.shields.io/badge/Jupyter-Notebooks-F37626.svg?style=flat&logo=jupyter&logoColor=white" alt="Jupyter" />
+</p>
+
+### Deep Learning Architectures & Transformer Embeddings (ML Training)
+<p align="left">
+  <img src="https://img.shields.io/badge/CNN-VGG16_%26_DenseNet201-00599C.svg?style=flat&logo=pytorch&logoColor=white" alt="CNN" />
+  <img src="https://img.shields.io/badge/GRU-Temporal_Sequence_Modeling-008080.svg?style=flat&logo=pytorch&logoColor=white" alt="GRU" />
+  <img src="https://img.shields.io/badge/Attention-Additive_%26_Masked_Pooling-8A2BE2.svg?style=flat&logo=pytorch&logoColor=white" alt="Attention" />
+  <img src="https://img.shields.io/badge/Transformers-Embedding_Extraction-FFA000.svg?style=flat&logo=huggingface&logoColor=black" alt="Transformers Embeddings" />
+  <img src="https://img.shields.io/badge/MiniLM-all--MiniLM--L6--v2-FF6F00.svg?style=flat&logo=huggingface&logoColor=white" alt="MiniLM" />
+  <img src="https://img.shields.io/badge/DistilBERT-distilbert--base--uncased-FF9900.svg?style=flat&logo=huggingface&logoColor=black" alt="DistilBERT" />
 </p>
 
 ### Frontend & Client UI
@@ -72,7 +84,7 @@ The project is structured into modular microservices and pipelines:
 * **`backend/` (API Gateway & Core Business Logic)**: Built with Spring Boot 3 and Java 23. Manages user registration, email OTP verification, JWT session authentication, account lifecycle, and clinical report queries.
 * **`frontend/` (Conversational UI)**: Built with Next.js and TypeScript. Captures real-time audio through the browser Web Audio API alongside text responses for conversational assessment.
 * **`ml-engine/` (Model Serving & Orchestration)**: Built with FastAPI and Python. Provides low-latency HTTP inference for turn-by-turn sentiment scoring, audio feature evaluation, rule-based crisis detection, and decision fusion.
-* **`ml-training/` (Offline ML Research & Training Pipeline)**: Python research environment that processes the E-DAIC benchmark. Contains feature extraction pipelines (MFCC, eGeMAPS, BoAW), temporal pooling (mean, std, min, max), repeated cross-validation protocols, and baseline models (LinearSVC, Logistic Regression, Ridge, Random Forest).
+* **`ml-training/` (Offline ML Research & Training Pipeline)**: Python research environment that processes the E-DAIC benchmark. Contains feature extraction pipelines (MFCC, eGeMAPS, BoAW, deep CNN audio embeddings via VGG16/DenseNet201), temporal sequence modeling (GRU with masked attention), transcript chunk embeddings using Transformers (all-MiniLM-L6-v2, DistilBERT), additive attention pooling, repeated cross-validation protocols, diagnostic visualization (Matplotlib, Seaborn, Plotly), and benchmark models.
 * **`docs/` (Architecture & Specifications)**: Detailed system synopsis, architecture diagrams (Mermaid & PNG), and data use agreements.
 
 ---
@@ -81,6 +93,7 @@ The project is structured into modular microservices and pipelines:
 
 ```
 BimodalPsycheAI/
+├── .github/                                   # GitHub workflow templates and modernization hooks
 ├── .gitignore                                 # Git ignore rules for datasets, model weights, and targets
 ├── docker-compose.yml                         # Orchestration for Backend and ML-Engine containers
 ├── README.md                                  # Comprehensive repository documentation
@@ -120,8 +133,8 @@ BimodalPsycheAI/
 │       └── README.md                          # Production weight drop directory (git-ignored)
 │
 ├── ml-training/                               # Offline ML Pipeline & Benchmark Research Environment
-│   ├── requirements.txt                       # Training dependencies: scikit-learn, pandas, numpy, librosa, torch
-│   ├── methodology.md                         # Benchmark experimental protocol and methodology
+│   ├── requirements.txt                       # Training dependencies: scikit-learn, pandas, numpy, librosa, torch, transformers
+│   ├── methodology.md                         # Benchmark experimental protocol, forensic audits, and methodology
 │   ├── model_selection.md                     # Model evaluation metrics, CV analysis, and model selection
 │   ├── BiModelPsycheAI Starting Checklist.md  # Training pipeline checklist and action items
 │   ├── edaic-woz/                             # [GIT-IGNORED] USC ICT Private Dataset & Labels (241+ GB)
@@ -130,12 +143,35 @@ BimodalPsycheAI/
 │   │   ├── labels2019/                        # AVEC challenge label archives
 │   │   ├── metadata_mapped.csv                # Participant identifier mapping table
 │   │   └── E-DAIC Manual.pdf                  # Official dataset specification and protocol manual
-│   ├── dataset/                               # [GIT-IGNORED] Generated feature tables (mean, std, BoAW)
+│   ├── dataset/                               # [GIT-IGNORED] Generated feature tables and split matrices
+│   │   ├── raw_egemaps/ & raw_mfcc/           # 100 Hz low-level descriptors (eGeMAPS 23-d, MFCC 39-d)
+│   │   ├── boaw_egemaps/ & boaw_mfcc/         # 10 Hz 100-bin Bag-of-Audio-Words quantized histograms
+│   │   ├── deep_features_v1/                  # Pretrained CNN transfer audio representations (VGG16 & DenseNet201)
+│   │   ├── text_v1/                           # Participant-level TF-IDF sparse matrices (Phase 17A)
+│   │   ├── text_embeddings_v1/                # Participant-level MiniLM-L6-v2 dense embeddings (Phase 17B)
+│   │   ├── text_segments_v1/                  # Chronological segment-level MiniLM embeddings (Phase 18A)
+│   │   ├── text_distilbert_v1/                # Chunk-level & segment-aggregated DistilBERT embeddings (Phase 18B/18C)
+│   │   └── splits/                            # Partition-aligned feature tables across Train, Dev, and Test
 │   ├── datasets/
 │   │   └── README.md                          # Access guidelines for clinical datasets
 │   ├── outputs/                               # Benchmark logs, evaluation metrics, and predictions
 │   │   ├── classical_controlled/              # Phase 9: Controlled benchmark outputs (mean_std protocol)
 │   │   ├── classical_final_test_v1/           # Phase 10: Official Test release, 9 serialized models & manifest
+│   │   ├── cnn_embedding_classical_v1/        # Stage 1 / Phase 13A: Classical models on CNN audio representations
+│   │   ├── cnn_embedding_neural_head_v1/      # Stage 2 / Phase 13A: Deep MLP prediction heads on CNN embeddings
+│   │   ├── cnn_embedding_temporal_v1/         # Stage 13B: GRU temporal sequence modeling with masked attention
+│   │   ├── text_baselines_v1/                 # Phase 17A: Participant-level TF-IDF baseline models & evaluation
+│   │   ├── text_baselines_final_v1/           # Phase 17A: Final model release on Train OOF & Development splits
+│   │   ├── text_embeddings_v1/                # Phase 17B: Frozen all-MiniLM-L6-v2 text embeddings & models
+│   │   ├── text_embeddings_tuned_v1/          # Phase 17B.1: Hyperparameter-tuned MiniLM models & grid records
+│   │   ├── text_mlp_v1/                       # Phase 17C: PyTorch neural MLP on MiniLM embeddings
+│   │   ├── text_segments_v1/                  # Phase 18A: Chronological segment embeddings (early/mid/late) & aggregation
+│   │   ├── text_distilbert_v1/                # Phase 18B: DistilBERT chunk embeddings & multi-segment pipelines
+│   │   ├── text_attention_v1/                 # Phase 18C: Additive attention pooling on DistilBERT chunk representations
+│   │   ├── phase_18a_audit/                   # Phase 18A forensic audit verification report & artifacts
+│   │   ├── phase_18b_audit/                   # Phase 18B forensic audit verification report & artifacts
+│   │   ├── phase_18c_audit/                   # Phase 18C forensic audit verification report & artifacts
+│   │   ├── model_visualizations_v1/           # Diagnostic visualizations (ROC/PR curves, scatter plots, attention maps)
 │   │   ├── classification/                    # Historical classification exploration outputs & curves
 │   │   └── regression/                        # Historical regression exploration outputs & curves
 │   └── code/                                  # Modular ML pipeline source code (Version Controlled)
@@ -151,26 +187,35 @@ BimodalPsycheAI/
 │       │   ├── regression_evaluator.py        # Regression evaluator with CCC, RMSE, MAE, Pearson
 │       │   └── cross_validation.py            # Cross-validation fold partitioners
 │       ├── experiments/                       # Benchmark runners and experiment entry points
-│       │   ├── run_classical_controlled_benchmark.py # Phase 9: 4-representation controlled benchmark
-│       │   ├── run_classical_final_test.py    # Phase 10: Official test evaluation & model serialization
-│       │   ├── run_repeated_cv.py             # 50-fold repeated CV stability benchmark (classification)
-│       │   ├── run_repeated_cv_regression.py  # 50-fold repeated CV stability benchmark (regression)
-│       │   ├── run_classification.py          # Broad classical classification exploration
-│       │   └── run_regression.py              # Broad classical regression exploration
-│       ├── models/                            # Classification and regression model architectures
+│       │   ├── run_classical_controlled_benchmark.py     # Phase 9: 4-representation controlled benchmark
+│       │   ├── run_classical_final_test.py               # Phase 10: Official test evaluation & model serialization
+│       │   ├── run_cnn_embedding_classical_benchmark.py  # Stage 1: Classical models on VGG16/DenseNet201
+│       │   ├── run_cnn_embedding_neural_head_benchmark.py # Stage 2: MLP neural heads on CNN embeddings
+│       │   ├── run_cnn_embedding_temporal_benchmark.py   # Stage 13B: GRU temporal sequence modeling
+│       │   ├── run_repeated_cv.py                        # 50-fold repeated CV stability (classification)
+│       │   ├── run_repeated_cv_regression.py             # 50-fold repeated CV stability (regression)
+│       │   ├── run_classification.py                     # Broad classical classification exploration
+│       │   └── run_regression.py                         # Broad classical regression exploration
+│       ├── models/                            # Classical model architectures
 │       │   ├── classification_models.py       # LinearSVC, LogisticRegression, RF, ExtraTrees, XGBoost
 │       │   └── regression_models.py           # Ridge, Lasso, ElasticNet, SVR, KNN, RF, ExtraTrees, XGBoost
-│       ├── notebooks/                         # Jupyter exploration and prototyping notebooks
-│       ├── scripts/                           # Standalone utility and reporting scripts
-│       │   └── summarize_models.py            # Summary reporter for classification and regression models
+│       ├── text_baselines_v1/                 # Phase 17A: TF-IDF feature extraction, training & evaluation
+│       ├── text_embeddings_v1/                # Phase 17B: MiniLM embedding extraction & baseline modeling
+│       ├── text_embeddings_tuned_v1/          # Phase 17B.1: Hyperparameter tuning & grid evaluations
+│       ├── text_mlp_v1/                       # Phase 17C: PyTorch neural MLP architectures & trainers
+│       ├── text_segments_v1/                  # Phase 18A: Chronological segmentation & robust aggregation
+│       ├── text_distilbert_v1/                # Phase 18B: DistilBERT chunk embedding & multi-segment pipelines
+│       ├── text_attention_v1/                 # Phase 18C: Lightweight additive attention pooling & diagnostics
 │       ├── audits/                            # Forensic validation scripts & audit test harnesses
 │       │   ├── audit_classical_controlled.py  # 63-check verification of controlled benchmark
 │       │   ├── audit_phases1_to_4.py          # Split integrity, metric verification & fold stability
 │       │   ├── audit_regression_forensic.py   # Regression benchmark integrity & prediction bounds
 │       │   └── audit_rf_anomaly.py            # Random Forest zero-positive probability diagnosis
-│       ├── tests/                             # Automated unit and integration test suite (37 tests)
-│       ├── utils/                             # Shared metric implementations (Lin's CCC, F1, Balanced Acc)
-│       ├── visualization/                     # ROC curves, PR curves, and confusion matrix visualizers
+│       ├── tests/                             # Automated test suite (18 suites covering audio DSP, CNN, GRU, text, attention)
+│       ├── utils/                             # Shared metric implementations (Lin's CCC, F1, Balanced Acc, bootstrap tests)
+│       ├── visualization/                     # ROC curves, PR curves, regression scatters, and attention visualizers
+│       ├── notebooks/                         # Jupyter exploration and prototyping notebooks
+│       ├── scripts/                           # Standalone utility and reporting scripts
 │       └── [Compatibility Shims]              # Root re-exports (config.py, split_loader.py, pooling.py, etc.)
 │
 └── docs/                                      # System Specifications & Schemas
@@ -251,7 +296,8 @@ Once running, interactive documentation is available at:
 
 ### 4. ML Training & Benchmark Pipeline (Offline Research)
 
-The training pipeline supports acoustic feature extraction, temporal pooling, cross-validation model benchmarking, and full regression/classification stability audits.
+The training pipeline supports acoustic feature extraction (eGeMAPS, MFCC, BoAW, CNN transfer learning), temporal sequence modeling (GRU), transcript chunk embedding extraction using Transformers (MiniLM, DistilBERT), additive attention pooling, cross-validation model benchmarking, diagnostic visualization (Seaborn, Plotly, Matplotlib), and full regression/classification stability audits.
+
 
 ```bash
 # Navigate to ml-training
@@ -260,7 +306,7 @@ cd ml-training
 # Install ML research dependencies
 pip install -r requirements.txt
 
-# Run the complete test suite (37 tests covering split loaders, feature extractors, pooling, and metrics)
+# Run the complete test suite (18 test suites covering split loaders, feature extractors, CNN, GRU, Transformers, attention, and metrics)
 python -m unittest discover -s code/tests -p "test_*.py"
 
 # Run controlled classical benchmark audit (63 automated integrity checks)
