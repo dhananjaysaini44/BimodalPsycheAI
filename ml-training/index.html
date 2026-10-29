@@ -1,0 +1,1000 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BimodalPsycheAI — Unified Multimodal Depression Detection Benchmark</title>
+    <style>
+        :root {
+            --primary: #1e3d59;
+            --primary-dark: #112233;
+            --primary-light: #2c5282;
+            --secondary: #ff6e40;
+            --accent: #17b978;
+            --bg: #f8fafc;
+            --card-bg: #ffffff;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.08);
+            --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05);
+        }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: var(--bg);
+            color: var(--text-main);
+            line-height: 1.6;
+        }
+        header {
+            background: linear-gradient(135deg, var(--primary), var(--primary-light));
+            color: white;
+            padding: 3rem 1.5rem 2rem 1.5rem;
+            text-align: center;
+        }
+        header h1 {
+            font-size: 2.3rem;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            margin-bottom: 0.5rem;
+        }
+        header p {
+            font-size: 1.15rem;
+            opacity: 0.9;
+            max-width: 850px;
+            margin: 0 auto 1.5rem auto;
+        }
+        .quarantine-banner {
+            background-color: #fef3c7;
+            color: #92400e;
+            border: 1px solid #fde68a;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            display: inline-block;
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-top: 0.5rem;
+        }
+        nav.sticky-nav {
+            position: sticky;
+            top: 0;
+            background: white;
+            border-bottom: 1px solid var(--border);
+            z-index: 1000;
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            box-shadow: var(--shadow-sm);
+        }
+        nav.sticky-nav a {
+            padding: 0.85rem 1.25rem;
+            color: var(--text-main);
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.95rem;
+            transition: all 0.2s ease;
+            border-bottom: 3px solid transparent;
+        }
+        nav.sticky-nav a:hover, nav.sticky-nav a.active {
+            color: var(--primary);
+            border-bottom: 3px solid var(--secondary);
+            background-color: #f1f5f9;
+        }
+        .container {
+            max-width: 1280px;
+            margin: 2rem auto;
+            padding: 0 1.5rem;
+        }
+        section.section-block {
+            margin-bottom: 3.5rem;
+            scroll-margin-top: 70px;
+        }
+        .section-header {
+            border-bottom: 2px solid var(--border);
+            padding-bottom: 0.75rem;
+            margin-bottom: 1.5rem;
+        }
+        .section-header h2 {
+            font-size: 1.75rem;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .section-header p {
+            color: var(--text-muted);
+            margin-top: 0.25rem;
+            font-size: 1rem;
+        }
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 1.75rem;
+            margin-bottom: 1.75rem;
+            box-shadow: var(--shadow-sm);
+        }
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1.25rem;
+            margin-bottom: 2rem;
+        }
+        .kpi-card {
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1.25rem;
+            text-align: center;
+            border-top: 4px solid var(--primary);
+            box-shadow: var(--shadow-sm);
+        }
+        .kpi-card.accent-orange { border-top-color: var(--secondary); }
+        .kpi-card.accent-green { border-top-color: var(--accent); }
+        .kpi-card.accent-purple { border-top-color: #8b5cf6; }
+        .kpi-val {
+            font-size: 1.9rem;
+            font-weight: 800;
+            color: var(--primary-dark);
+            margin: 0.25rem 0;
+        }
+        .kpi-lbl {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+        }
+        .kpi-sub {
+            font-size: 0.8rem;
+            color: #475569;
+            margin-top: 0.25rem;
+        }
+        .grid-2 {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(540px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        @media (max-width: 768px) {
+            .grid-2 { grid-template-columns: 1fr; }
+            nav.sticky-nav a { padding: 0.6rem 0.75rem; font-size: 0.85rem; }
+        }
+        .figure-box {
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1rem;
+            text-align: center;
+            box-shadow: var(--shadow-sm);
+        }
+        .figure-box img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 4px;
+            display: block;
+            margin: 0 auto;
+        }
+        .figure-caption {
+            margin-top: 0.75rem;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            text-align: left;
+            line-height: 1.4;
+        }
+        .figure-caption strong {
+            color: var(--text-main);
+        }
+        table.benchmark-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+            margin: 1rem 0;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: var(--shadow-sm);
+        }
+        table.benchmark-table th {
+            background: #f1f5f9;
+            color: var(--primary-dark);
+            text-align: left;
+            padding: 0.75rem 0.85rem;
+            font-weight: 700;
+            border-bottom: 2px solid var(--border);
+        }
+        table.benchmark-table td {
+            padding: 0.75rem 0.85rem;
+            border-bottom: 1px solid var(--border);
+            color: #334155;
+        }
+        table.benchmark-table tr:hover {
+            background-color: #f8fafc;
+        }
+        .badge {
+            display: inline-block;
+            padding: 0.2rem 0.5rem;
+            font-size: 0.75rem;
+            font-weight: 700;
+            border-radius: 4px;
+            text-transform: uppercase;
+        }
+        .badge-audio { background-color: #ffedd5; color: #c2410c; }
+        .badge-text { background-color: #e0f2fe; color: #0369a1; }
+        .badge-verified { background-color: #dcfce7; color: #15803d; }
+        .badge-n54 { background-color: #f3e8ff; color: #7e22ce; }
+        .callout {
+            border-left: 4px solid var(--primary);
+            background: #f0fdf4;
+            padding: 1rem 1.25rem;
+            border-radius: 0 8px 8px 0;
+            margin: 1rem 0;
+            font-size: 0.95rem;
+        }
+        .callout.callout-warn {
+            border-left-color: var(--secondary);
+            background: #fff7ed;
+        }
+        .callout.callout-info {
+            border-left-color: #3b82f6;
+            background: #eff6ff;
+        }
+        footer {
+            background: #0f172a;
+            color: #94a3b8;
+            padding: 2.5rem 1.5rem;
+            text-align: center;
+            font-size: 0.9rem;
+            border-top: 1px solid #1e293b;
+        }
+        footer a {
+            color: #38bdf8;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>BimodalPsycheAI: Multimodal Depression Detection Benchmark</h1>
+    <p>Unified Forensic Evaluation & Research Presentation across Voice/Audio and Conversational Text Pipelines on the E-DAIC Benchmark</p>
+    <div class="quarantine-banner">
+        🔒 Official Test Split (n=56) Quarantined &middot; All Reported Results are Train OOF &amp; Development Split (n=56 / n=54 matched)
+    </div>
+</header>
+
+<nav class="sticky-nav">
+    <a href="#overview">1. Overview</a>
+    <a href="#key-findings">2. Key Findings</a>
+    <a href="#classification">3. Classification</a>
+    <a href="#regression">4. Regression</a>
+    <a href="#audio-results">5. Voice/Audio</a>
+    <a href="#text-results">6. Text Pipelines</a>
+    <a href="#methodology">7. Methodology</a>
+    <a href="#reproducibility">8. Reproducibility</a>
+</nav>
+
+<div class="container">
+
+    <!-- 1. OVERVIEW -->
+    <section id="overview" class="section-block">
+        <div class="section-header">
+            <h2>1. Project Overview &amp; Research Scope</h2>
+            <p>Benchmarking classical machine learning, transfer representations, and lightweight attention on clinical depression screening</p>
+        </div>
+        <div class="card">
+            <p><strong>BimodalPsycheAI</strong> conducts an empirical benchmark of objective depression detection on the <strong>Extended Distress Analysis Interview Corpus (E-DAIC / AVEC 2019)</strong>. The benchmark rigorously evaluates two complementary communicative modalities:</p>
+            <ul style="margin: 0.75rem 0 1.25rem 1.5rem; line-height: 1.8;">
+                <li><strong>Voice / Audio Modality:</strong> 100 Hz acoustic Low-Level Descriptors (eGeMAPS 23-d, MFCC 39-d), 10 Hz Bag-of-Audio-Words (BoAW 100-d codebooks), deep CNN transfer representations (VGG16 4,096-d and DenseNet201 1,920-d), neural MLP heads, and unidirectional GRU temporal sequence models with masked attention.</li>
+                <li><strong>Conversational Text Modality:</strong> Participant transcript n-gram TF-IDF baselines, dense frozen sentence embeddings (<code>all-MiniLM-L6-v2</code> 384-d), chronological interview segmentation (early, middle, late, concatenated), frozen transformer chunk representations (<code>distilbert-base-uncased</code> 768-d), and lightweight trainable additive attention pooling.</li>
+            </ul>
+
+            <div class="kpi-grid">
+                <div class="kpi-card">
+                    <div class="kpi-lbl">Train Split (CV)</div>
+                    <div class="kpi-val">163</div>
+                    <div class="kpi-sub">5-Fold Stratified / K-Fold CV</div>
+                </div>
+                <div class="kpi-card accent-orange">
+                    <div class="kpi-lbl">Development Split</div>
+                    <div class="kpi-val">56</div>
+                    <div class="kpi-sub">12 Depressed / 44 Non-Depressed</div>
+                </div>
+                <div class="kpi-card accent-green">
+                    <div class="kpi-lbl">Matched 3-Segment Cohort</div>
+                    <div class="kpi-val">54</div>
+                    <div class="kpi-sub">10 Depressed / 44 Non-Depressed</div>
+                </div>
+                <div class="kpi-card accent-purple">
+                    <div class="kpi-lbl">Official Test Split</div>
+                    <div class="kpi-val">56</div>
+                    <div class="kpi-sub">Strictly Quarantined (Unblinded only for Final Phase)</div>
+                </div>
+            </div>
+
+            <div class="callout callout-info">
+                <strong>Documentation Links:</strong> Full experimental specifications, forensic audit logs, and protocol rules are documented in <a href="methodology.md" style="color: #0369a1; font-weight: bold;">methodology.md</a> and <a href="model_selection.md" style="color: #0369a1; font-weight: bold;">model_selection.md</a>.
+            </div>
+        </div>
+    </section>
+
+    <!-- 2. KEY FINDINGS -->
+    <section id="key-findings" class="section-block">
+        <div class="section-header">
+            <h2>2. Key Benchmark Findings</h2>
+            <p>Executive research synthesis across modalities, model architectures, and pooling strategies</p>
+        </div>
+
+        <div class="kpi-grid">
+            <div class="kpi-card accent-orange">
+                <div class="kpi-lbl">Top Audio Classification</div>
+                <div class="kpi-val">0.4286</div>
+                <div class="kpi-sub">VGG16 Mean LinearSVC (Dev F1, BalAcc=0.6364)</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-lbl">Top Text Classification</div>
+                <div class="kpi-val">0.5161</div>
+                <div class="kpi-sub">MiniLM Middle Mean LinearSVC (Dev F1, BalAcc=0.7083)</div>
+            </div>
+            <div class="kpi-card accent-orange">
+                <div class="kpi-lbl">Top Audio Regression</div>
+                <div class="kpi-val">0.2844</div>
+                <div class="kpi-sub">Raw MFCC Ridge (Dev CCC, RMSE=6.22)</div>
+            </div>
+            <div class="kpi-card accent-green">
+                <div class="kpi-lbl">Top Text Regression</div>
+                <div class="kpi-val">0.4048</div>
+                <div class="kpi-sub">DistilBERT Whole Mean_Std Ridge (Dev CCC, RMSE=5.34)</div>
+            </div>
+        </div>
+
+        <div class="grid-2">
+            <div class="card">
+                <h3 style="color: var(--primary); margin-bottom: 0.75rem;">1. Conversational Text Outperforms Acoustic Features</h3>
+                <p>Across both depression classification (binary PHQ &ge; 10) and continuous severity tracking (PHQ score 0–24), conversational text representations consistently achieve higher concordance and lower prediction errors than acoustic descriptors:</p>
+                <ul style="margin: 0.5rem 0 0 1.25rem; line-height: 1.7;">
+                    <li><strong>Classification:</strong> Text models achieve Dev F1 up to <strong>0.5161</strong> and ROC-AUC of <strong>0.7159</strong>, compared to peak acoustic F1 of <strong>0.4286</strong> (VGG16) and <strong>0.4000</strong> (Raw MFCC).</li>
+                    <li><strong>Regression:</strong> DistilBERT fixed pooling achieves Dev CCC of <strong>0.4048</strong> with RMSE of <strong>5.34</strong>, significantly surpassing peak audio regression (MFCC Ridge CCC = <strong>0.2844</strong>, RMSE = 6.22).</li>
+                </ul>
+            </div>
+            <div class="card">
+                <h3 style="color: var(--primary); margin-bottom: 0.75rem;">2. Attention Pooling: High ROC-AUC but Severe Regression Collapse</h3>
+                <p>Phase 18C and its independent forensic audit revealed an intriguing dichotomy for lightweight additive attention pooling over frozen DistilBERT chunk representations:</p>
+                <ul style="margin: 0.5rem 0 0 1.25rem; line-height: 1.7;">
+                    <li><strong>Classification:</strong> Trainable attention preserves strong rank discrimination (ROC-AUC = <strong>0.7121–0.7348</strong> across seeds, higher than fixed pooling's 0.6591).</li>
+                    <li><strong>Regression:</strong> Attention pooling suffers from <strong>severe variance collapse</strong> (prediction &sigma; = 2.45 vs target &sigma; = 6.01, a 63% compression), driving Dev CCC down to <strong>0.0723</strong> (3-seed mean: <strong>0.0466</strong>).</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="grid-2">
+            <div class="figure-box">
+                <img src="visualizations/comparison/audio_vs_text_classification_comparison.png" alt="Audio vs Text Classification Comparison">
+                <div class="figure-caption"><strong>Figure 2.1:</strong> Modality comparison for classification F1-score across classical, transfer, and deep architectures on the official Development split (n=56).</div>
+            </div>
+            <div class="figure-box">
+                <img src="visualizations/comparison/audio_vs_text_regression_comparison.png" alt="Audio vs Text Regression Comparison">
+                <div class="figure-caption"><strong>Figure 2.2:</strong> Modality comparison for continuous regression CCC agreement against actual clinical PHQ-8 severity on the official Development split.</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 3. CLASSIFICATION BENCHMARK -->
+    <section id="classification" class="section-block">
+        <div class="section-header">
+            <h2>3. Classification Benchmark (PHQ &ge; 10)</h2>
+            <p>Detection of clinical depression risk: precision, recall, balanced accuracy, and ROC-AUC</p>
+        </div>
+
+        <div class="card">
+            <h3>Curated Classification Benchmark Leaderboard</h3>
+            <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1rem;">Evaluated on the official Development split (n=56: 44 non-depressed, 12 depressed; 21.4% prevalence; or matched cohort n=54: 10 depressed).</p>
+            <div style="overflow-x: auto;">
+                <table class="benchmark-table">
+                    <thead>
+                        <tr>
+                            <th>Modality</th>
+                            <th>Model Architecture</th>
+                            <th>Feature Representation</th>
+                            <th>Cohort</th>
+                            <th>Dev F1</th>
+                            <th>Bal. Acc</th>
+                            <th>ROC-AUC</th>
+                            <th>Precision</th>
+                            <th>Recall</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><span class="badge badge-audio">Voice/Audio</span></td>
+                            <td><strong>LinearSVC</strong></td>
+                            <td><code>raw_mfcc (mean_std, 78-d)</code></td>
+                            <td><span class="badge badge-verified">n=56</span></td>
+                            <td style="font-weight: 700; color: #0f172a;">0.4000</td>
+                            <td>0.6174</td>
+                            <td>0.6761</td>
+                            <td>0.3529</td>
+                            <td>0.4615</td>
+                            <td><span class="badge badge-verified">Verified</span></td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge badge-audio">Voice/Audio</span></td>
+                            <td><strong>LinearSVC</strong></td>
+                            <td><code>raw_egemaps (mean_std, 46-d)</code></td>
+                            <td><span class="badge badge-verified">n=56</span></td>
+                            <td style="font-weight: 700; color: #0f172a;">0.2222</td>
+                            <td>0.5379</td>
+                            <td>0.5057</td>
+                            <td>0.2000</td>
+                            <td>0.2500</td>
+                            <td><span class="badge badge-verified">Verified</span></td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge badge-audio">Voice/Audio</span></td>
+                            <td><strong>LinearSVC</strong></td>
+                            <td><code>vgg16 (mean, 4096-d)</code></td>
+                            <td><span class="badge badge-verified">n=56</span></td>
+                            <td style="font-weight: 700; color: #0f172a;">0.4286</td>
+                            <td>0.6364</td>
+                            <td>0.6477</td>
+                            <td>0.3750</td>
+                            <td>0.5000</td>
+                            <td><span class="badge badge-verified">Verified</span></td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge badge-audio">Voice/Audio</span></td>
+                            <td><strong>MLP Classifier</strong></td>
+                            <td><code>vgg16 (mean_std, 8192-d)</code></td>
+                            <td><span class="badge badge-verified">n=56</span></td>
+                            <td style="font-weight: 700; color: #0f172a;">0.3529</td>
+                            <td>0.5720</td>
+                            <td>0.6629</td>
+                            <td>0.2727</td>
+                            <td>0.5000</td>
+                            <td><span class="badge badge-verified">Verified</span></td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge badge-audio">Voice/Audio</span></td>
+                            <td><strong>GRU(32)+Attention</strong></td>
+                            <td><code>vgg16 (temporal sequence, 4096-d)</code></td>
+                            <td><span class="badge badge-verified">n=56</span></td>
+                            <td style="font-weight: 700; color: #0f172a;">0.0000</td>
+                            <td>0.4773</td>
+                            <td>0.6648</td>
+                            <td>0.0000</td>
+                            <td>0.0000</td>
+                            <td><span class="badge badge-verified">Verified</span></td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge badge-text">Text</span></td>
+                            <td><strong>LinearSVC (calibrated)</strong></td>
+                            <td><code>char_tfidf (sparse)</code></td>
+                            <td><span class="badge badge-verified">n=56</span></td>
+                            <td style="font-weight: 700; color: #0f172a;">0.4571</td>
+                            <td>0.6629</td>
+                            <td>0.7159</td>
+                            <td>0.3810</td>
+                            <td>0.5714</td>
+                            <td><span class="badge badge-verified">Verified</span></td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge badge-text">Text</span></td>
+                            <td><strong>LinearSVC</strong></td>
+                            <td><code>all-MiniLM-L6-v2 (mean_std, 768-d)</code></td>
+                            <td><span class="badge badge-verified">n=56</span></td>
+                            <td style="font-weight: 700; color: #0f172a;">0.4000</td>
+                            <td>0.6136</td>
+                            <td>0.6534</td>
+                            <td>0.3333</td>
+                            <td>0.5000</td>
+                            <td><span class="badge badge-verified">Verified</span></td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge badge-text">Text</span></td>
+                            <td><strong>LinearSVC</strong></td>
+                            <td><code>all-MiniLM-L6-v2 (middle segment mean, 384-d)</code></td>
+                            <td><span class="badge badge-verified">n=56</span></td>
+                            <td style="font-weight: 700; color: #0f172a;">0.5161</td>
+                            <td>0.7083</td>
+                            <td>0.6894</td>
+                            <td>0.4706</td>
+                            <td>0.5714</td>
+                            <td><span class="badge badge-verified">Verified</span></td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge badge-text">Text</span></td>
+                            <td><strong>LinearSVC</strong></td>
+                            <td><code>distilbert-base-uncased (whole__median, 768-d)</code></td>
+                            <td><span class="badge badge-verified">n=56</span></td>
+                            <td style="font-weight: 700; color: #0f172a;">0.4516</td>
+                            <td>0.6553</td>
+                            <td>0.6591</td>
+                            <td>0.3684</td>
+                            <td>0.5833</td>
+                            <td><span class="badge badge-verified">Verified (Audited)</span></td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge badge-text">Text</span></td>
+                            <td><strong>LinearSVC</strong></td>
+                            <td><code>distilbert-base-uncased (concat__mean, 2304-d)</code></td>
+                            <td><span class="badge badge-n54">n=54</span></td>
+                            <td style="font-weight: 700; color: #0f172a;">0.4615</td>
+                            <td>0.6607</td>
+                            <td>0.6210</td>
+                            <td>0.3750</td>
+                            <td>0.6000</td>
+                            <td><span class="badge badge-verified">Verified (Audited)</span></td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge badge-text">Text</span></td>
+                            <td><strong>Additive Attention (Seed 42)</strong></td>
+                            <td><code>distilbert-base-uncased (whole_attention, 768-d)</code></td>
+                            <td><span class="badge badge-verified">n=56</span></td>
+                            <td style="font-weight: 700; color: #0f172a;">0.4348</td>
+                            <td>0.6439</td>
+                            <td>0.7121</td>
+                            <td>0.4167</td>
+                            <td>0.4545</td>
+                            <td><span class="badge badge-verified">Verified (Audited)</span></td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge badge-text">Text</span></td>
+                            <td><strong>Additive Attention (3-Seed Mean)</strong></td>
+                            <td><code>distilbert-base-uncased (whole_attention, 768-d)</code></td>
+                            <td><span class="badge badge-verified">n=56</span></td>
+                            <td style="font-weight: 700; color: #0f172a;">0.4006</td>
+                            <td>0.5922</td>
+                            <td>0.7146</td>
+                            <td>0.3681</td>
+                            <td>0.4545</td>
+                            <td><span class="badge badge-verified">Verified (Audited)</span></td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge badge-text">Text</span></td>
+                            <td><strong>Additive Attention (Seed 456)</strong></td>
+                            <td><code>distilbert-base-uncased (middle_attention, 768-d)</code></td>
+                            <td><span class="badge badge-verified">n=56</span></td>
+                            <td style="font-weight: 700; color: #0f172a;">0.5000</td>
+                            <td>0.6818</td>
+                            <td>0.6572</td>
+                            <td>0.4375</td>
+                            <td>0.5833</td>
+                            <td><span class="badge badge-verified">Verified (Audited)</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.5rem;">
+                📥 Full machine-readable CSV table: <a href="benchmarks/classification_benchmark.csv" style="color: var(--primary); font-weight: bold;">benchmarks/classification_benchmark.csv</a>
+            </div>
+        </div>
+
+        <div class="grid-2">
+            <div class="figure-box">
+                <img src="visualizations/text/text_classification_f1_comparison.png" alt="Text Classification F1 Comparison">
+                <div class="figure-caption"><strong>Figure 3.1:</strong> Development F1-scores across text architectures, comparing n-gram TF-IDF, MiniLM segments, and DistilBERT fixed/attention pooling.</div>
+            </div>
+            <div class="figure-box">
+                <img src="visualizations/text/text_classification_auc_comparison.png" alt="Text Classification ROC-AUC Comparison">
+                <div class="figure-caption"><strong>Figure 3.2:</strong> ROC-AUC rank-discrimination across text models against the random-chance reference line (&tau;=0.50).</div>
+            </div>
+        </div>
+
+        <div class="grid-2">
+            <div class="figure-box">
+                <img src="visualizations/text/text_classification_roc_curves.png" alt="Text Classification ROC Curves">
+                <div class="figure-caption"><strong>Figure 3.3:</strong> Receiver Operating Characteristic (ROC) curves on the Development split (n=56). DistilBERT Whole Attention (Seed 42) achieves AUC=0.7121; Char TF-IDF achieves AUC=0.7159.</div>
+            </div>
+            <div class="figure-box">
+                <img src="visualizations/text/text_classification_precision_recall_curves.png" alt="Text Classification Precision-Recall Curves">
+                <div class="figure-caption"><strong>Figure 3.4:</strong> Precision-Recall curves plotted against the empirical positive class prevalence (baseline AP = 12/56 = 0.214).</div>
+            </div>
+        </div>
+
+        <div class="figure-box" style="margin-bottom: 2rem;">
+            <img src="visualizations/text/text_classification_confusion_matrices.png" alt="Text Classification Confusion Matrices">
+            <div class="figure-caption"><strong>Figure 3.5:</strong> Consolidated 4-panel confusion matrices on Development split (n=56, Depressed=12) showing sensitivity vs false positive trade-offs for Char TF-IDF, MiniLM, DistilBERT Whole Median, and Attention Pooling.</div>
+        </div>
+    </section>
+
+    <!-- 4. REGRESSION BENCHMARK -->
+    <section id="regression" class="section-block">
+        <div class="section-header">
+            <h2>4. Regression Benchmark (PHQ Severity 0–24)</h2>
+            <p>Tracking clinical severity with Lin's Concordance Correlation Coefficient, RMSE, and MAE</p>
+        </div>
+
+        <div class="card">
+            <h3>Curated Regression Benchmark Leaderboard</h3>
+            <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1rem;">Evaluated against actual PHQ-8 clinical severity scores on the official Development split (n=56: Mean=6.14, Std=6.01, Range 0–22; or matched cohort n=54).</p>
+            <div style="overflow-x: auto;">
+                <table class="benchmark-table">
+                    <thead>
+                        <tr>
+                            <th>Modality</th>
+                            <th>Model Architecture</th>
+                            <th>Feature Representation</th>
+                            <th>Cohort</th>
+                            <th>Dev CCC &uarr;</th>
+                            <th>Dev RMSE &darr;</th>
+                            <th>Dev MAE &darr;</th>
+                            <th>Dev R²</th>
+                            <th>Pearson r</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><span class="badge badge-audio">Voice/Audio</span></td>
+                            <td><strong>Ridge</strong></td>
+                            <td><code>raw_mfcc (mean_std, 78-d)</code></td>
+                            <td><span class="badge badge-verified">n=56</span></td>
+                            <td style="font-weight: 700; color: #0f172a;">0.2844</td>
+                            <td>6.2167</td>
+                            <td>5.1740</td>
+                            <td>-0.2053</td>
+                            <td>0.3134</td>
+                            <td><span class="badge badge-verified">Verified</span></td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge badge-audio">Voice/Audio</span></td>
+                            <td><strong>Ridge</strong></td>
+                            <td><code>raw_egemaps (mean_std, 46-d)</code></td>
+                            <td><span class="badge badge-verified">n=56</span></td>
+                            <td style="font-weight: 700; color: #0f172a;">0.0273</td>
+                            <td>6.3981</td>
+                            <td>5.2559</td>
+                            <td>-0.2768</td>
+                            <td>0.2384</td>
+                            <td><span class="badge badge-verified">Verified</span></td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge badge-audio">Voice/Audio</span></td>
+                            <td><strong>XGBRegressor</strong></td>
+                            <td><code>boaw_mfcc (mean_std, 200-d)</code></td>
+                            <td><span class="badge badge-verified">n=56</span></td>
+                            <td style="font-weight: 700; color: #0f172a;">0.1613</td>
+                            <td>5.7172</td>
+                            <td>4.6654</td>
+                            <td>-0.0193</td>
+                            <td>0.1820</td>
+                            <td><span class="badge badge-verified">Verified</span></td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge badge-audio">Voice/Audio</span></td>
+                            <td><strong>Ridge</strong></td>
+                            <td><code>densenet201 (mean, 1920-d)</code></td>
+                            <td><span class="badge badge-verified">n=56</span></td>
+                            <td style="font-weight: 700; color: #0f172a;">0.1496</td>
+                            <td>7.4676</td>
+                            <td>5.6237</td>
+                            <td>-0.7397</td>
+                            <td>0.1819</td>
+                            <td><span class="badge badge-verified">Verified</span></td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge badge-audio">Voice/Audio</span></td>
+                            <td><strong>MLP Regressor</strong></td>
+                            <td><code>densenet201 (mean, 1920-d)</code></td>
+                            <td><span class="badge badge-verified">n=56</span></td>
+                            <td style="font-weight: 700; color: #0f172a;">0.1654</td>
+                            <td>6.4523</td>
+                            <td>4.9602</td>
+                            <td>-0.2987</td>
+                            <td>0.2012</td>
+                            <td><span class="badge badge-verified">Verified</span></td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge badge-audio">Voice/Audio</span></td>
+                            <td><strong>GRU(32)+Attention</strong></td>
+                            <td><code>vgg16 (temporal sequence, 4096-d)</code></td>
+                            <td><span class="badge badge-verified">n=56</span></td>
+                            <td style="font-weight: 700; color: #0f172a;">0.0958</td>
+                            <td>6.9533</td>
+                            <td>5.7404</td>
+                            <td>-0.5079</td>
+                            <td>0.1245</td>
+                            <td><span class="badge badge-verified">Verified</span></td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge badge-text">Text</span></td>
+                            <td><strong>Ridge (tuned)</strong></td>
+                            <td><code>char_tfidf (sparse)</code></td>
+                            <td><span class="badge badge-verified">n=56</span></td>
+                            <td style="font-weight: 700; color: #0f172a;">0.3211</td>
+                            <td>4.9812</td>
+                            <td>3.9942</td>
+                            <td>0.2262</td>
+                            <td>0.5146</td>
+                            <td><span class="badge badge-verified">Verified</span></td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge badge-text">Text</span></td>
+                            <td><strong>Ridge</strong></td>
+                            <td><code>all-MiniLM-L6-v2 (whole__mean, 384-d)</code></td>
+                            <td><span class="badge badge-verified">n=56</span></td>
+                            <td style="font-weight: 700; color: #0f172a;">0.3707</td>
+                            <td>5.4370</td>
+                            <td>4.3168</td>
+                            <td>0.0781</td>
+                            <td>0.4704</td>
+                            <td><span class="badge badge-verified">Verified</span></td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge badge-text">Text</span></td>
+                            <td><strong>Ridge</strong></td>
+                            <td><code>all-MiniLM-L6-v2 (whole__median, 384-d)</code></td>
+                            <td><span class="badge badge-verified">n=56</span></td>
+                            <td style="font-weight: 700; color: #0f172a;">0.3958</td>
+                            <td>5.7390</td>
+                            <td>4.4512</td>
+                            <td>-0.0272</td>
+                            <td>0.4412</td>
+                            <td><span class="badge badge-verified">Verified</span></td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge badge-text">Text</span></td>
+                            <td><strong>Ridge</strong></td>
+                            <td><code>distilbert-base-uncased (whole__mean_std, 1536-d)</code></td>
+                            <td><span class="badge badge-verified">n=56</span></td>
+                            <td style="font-weight: 700; color: #0f172a;">0.4048</td>
+                            <td>5.3423</td>
+                            <td>4.4008</td>
+                            <td>0.1102</td>
+                            <td>0.4372</td>
+                            <td><span class="badge badge-verified">Verified (Audited)</span></td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge badge-text">Text</span></td>
+                            <td><strong>Ridge</strong></td>
+                            <td><code>distilbert-base-uncased (middle__mean, 768-d)</code></td>
+                            <td><span class="badge badge-verified">n=56</span></td>
+                            <td style="font-weight: 700; color: #0f172a;">0.4022</td>
+                            <td>5.1890</td>
+                            <td>4.2374</td>
+                            <td>0.1606</td>
+                            <td>0.4346</td>
+                            <td><span class="badge badge-verified">Verified (Audited)</span></td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge badge-text">Text</span></td>
+                            <td><strong>Ridge</strong></td>
+                            <td><code>distilbert-base-uncased (concat__mean, 2304-d)</code></td>
+                            <td><span class="badge badge-n54">n=54</span></td>
+                            <td style="font-weight: 700; color: #0f172a;">0.2817</td>
+                            <td>5.0706</td>
+                            <td>4.2280</td>
+                            <td>0.2210</td>
+                            <td>0.3150</td>
+                            <td><span class="badge badge-verified">Verified (Audited)</span></td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge badge-text">Text</span></td>
+                            <td><strong>Additive Attention (Seed 42)</strong></td>
+                            <td><code>distilbert-base-uncased (whole_attention, 768-d)</code></td>
+                            <td><span class="badge badge-verified">n=56</span></td>
+                            <td style="font-weight: 700; color: #0f172a;">0.0723</td>
+                            <td>5.5017</td>
+                            <td>4.5404</td>
+                            <td>0.0564</td>
+                            <td>0.1412</td>
+                            <td><span class="badge badge-verified">Verified (Audited)</span></td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge badge-text">Text</span></td>
+                            <td><strong>Additive Attention (3-Seed Mean)</strong></td>
+                            <td><code>distilbert-base-uncased (whole_attention, 768-d)</code></td>
+                            <td><span class="badge badge-verified">n=56</span></td>
+                            <td style="font-weight: 700; color: #0f172a;">0.0466</td>
+                            <td>5.5686</td>
+                            <td>4.6084</td>
+                            <td>0.0333</td>
+                            <td>0.1084</td>
+                            <td><span class="badge badge-verified">Verified (Audited)</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.5rem;">
+                📥 Full machine-readable CSV table: <a href="benchmarks/regression_benchmark.csv" style="color: var(--primary); font-weight: bold;">benchmarks/regression_benchmark.csv</a>
+            </div>
+        </div>
+
+        <div class="grid-2">
+            <div class="figure-box">
+                <img src="visualizations/text/text_regression_ccc_comparison.png" alt="Text Regression CCC Comparison">
+                <div class="figure-caption"><strong>Figure 4.1:</strong> Lin's Concordance Correlation Coefficient (CCC) across text regression models. DistilBERT whole__mean_std achieves peak CCC=0.4048.</div>
+            </div>
+            <div class="figure-box">
+                <img src="visualizations/text/text_regression_rmse_comparison.png" alt="Text Regression RMSE Comparison">
+                <div class="figure-caption"><strong>Figure 4.2:</strong> Root Mean Squared Error (RMSE) across text regression models. Char TF-IDF achieves lowest RMSE of 4.9812.</div>
+            </div>
+        </div>
+
+        <div class="figure-box" style="margin-bottom: 2rem;">
+            <img src="visualizations/text/text_regression_actual_vs_predicted.png" alt="Text Regression Actual vs Predicted">
+            <div class="figure-caption"><strong>Figure 4.3:</strong> Actual versus predicted PHQ-8 scatter plots with identity line (y = ŷ) for Char TF-IDF (CCC=0.3211), DistilBERT Whole Mean_Std (CCC=0.4048), DistilBERT Middle Mean (CCC=0.4022), and Attention Pooling (CCC=0.0723).</div>
+        </div>
+
+        <div class="grid-2">
+            <div class="figure-box">
+                <img src="visualizations/text/text_regression_residuals.png" alt="Text Regression Residuals">
+                <div class="figure-caption"><strong>Figure 4.4:</strong> Residual error distribution (y - ŷ vs ŷ) with zero-residual reference line across the four primary text regression pipelines.</div>
+            </div>
+            <div class="figure-box">
+                <img src="visualizations/text/text_attention_regression_diagnostics.png" alt="Attention Variance Compression Diagnostic">
+                <div class="figure-caption"><strong>Figure 4.5:</strong> Phase 18C Forensic Diagnostic: Empirical prediction spread (&sigma;) demonstrates the severe variance compression of attention pooling (&sigma;=2.45 vs ground truth &sigma;=6.01).</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 5. AUDIO RESULTS -->
+    <section id="audio-results" class="section-block">
+        <div class="section-header">
+            <h2>5. Voice / Audio Modality Deep Dive</h2>
+            <p>Analysis of acoustic Low-Level Descriptors, BoAW codebooks, deep CNN embeddings, and temporal sequence models</p>
+        </div>
+
+        <div class="card">
+            <p>The audio benchmark evaluates whether acoustic vocal dynamics alone can reliably distinguish depression or track clinical severity on conversational speech:</p>
+            <ul style="margin: 0.5rem 0 1rem 1.5rem; line-height: 1.8;">
+                <li><strong>Classical Acoustic LLDs:</strong> Raw MFCC <code>mean_std</code> (78-d) with <code>LinearSVC</code> achieves Dev F1=<strong>0.4000</strong> and ROC-AUC=<strong>0.6761</strong>; Ridge regression achieves Dev CCC=<strong>0.2844</strong>. eGeMAPS descriptors exhibit substantially lower sensitivity (F1=0.2222, CCC=0.0273).</li>
+                <li><strong>Bag-of-Audio-Words (BoAW):</strong> Codebook quantization (100 bins at 10 Hz) with XGBoost achieves lower RMSE (<strong>5.7172</strong>) and MAE (<strong>4.6654</strong>) than Ridge regression, but shows lower linear tracking (CCC=0.1613).</li>
+                <li><strong>Pretrained CNN Transfer Learning:</strong> VGG16 embeddings (4,096-d) achieve peak audio classification F1 of <strong>0.4286</strong> (ROC-AUC=0.6477). DenseNet201 embeddings achieve CCC=<strong>0.1496</strong> with Ridge and <strong>0.1654</strong> with a neural MLP prediction head.</li>
+                <li><strong>Temporal Sequence Modeling (GRU):</strong> Window-level GRU with temporal attention pooling retains moderate ROC-AUC (<strong>0.6648</strong>) but suffers from threshold collapse at standard decision cutoffs, resulting in F1=0.0000.</li>
+            </ul>
+        </div>
+
+        <div class="grid-2">
+            <div class="figure-box">
+                <img src="visualizations/audio/audio_classification_f1_comparison.png" alt="Audio Classification F1 Comparison">
+                <div class="figure-caption"><strong>Figure 5.1:</strong> Voice/Audio classification F1-scores across acoustic, BoAW, CNN, and temporal GRU architectures.</div>
+            </div>
+            <div class="figure-box">
+                <img src="visualizations/audio/audio_regression_ccc_comparison.png" alt="Audio Regression CCC Comparison">
+                <div class="figure-caption"><strong>Figure 5.2:</strong> Voice/Audio regression CCC agreement across representations on the official Development split.</div>
+            </div>
+        </div>
+
+        <div class="grid-2">
+            <div class="figure-box">
+                <img src="visualizations/audio/audio_classification_confusion_matrices.png" alt="Audio Classification Confusion Matrices">
+                <div class="figure-caption"><strong>Figure 5.3:</strong> Confusion matrices for acoustic pipelines showing the severe false-negative bias of temporal sequence models at default decision boundaries.</div>
+            </div>
+            <div class="figure-box">
+                <img src="visualizations/audio/audio_regression_actual_vs_predicted.png" alt="Audio Regression Actual vs Predicted">
+                <div class="figure-caption"><strong>Figure 5.4:</strong> Actual vs predicted scatter plots for audio regression pipelines showing high residual variance across acoustic features.</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 6. TEXT RESULTS -->
+    <section id="text-results" class="section-block">
+        <div class="section-header">
+            <h2>6. Conversational Text Modality Deep Dive</h2>
+            <p>From sparse n-gram TF-IDF to transformer embeddings, chronological segmentation, and additive attention</p>
+        </div>
+
+        <div class="card">
+            <p>Text experiments progressed across five formal phases (Phases 17A through 18C):</p>
+            <ol style="margin: 0.5rem 0 1rem 1.5rem; line-height: 1.8;">
+                <li><strong>Phase 17A (TF-IDF Baselines):</strong> Character n-gram TF-IDF with calibrated LinearSVC established a strong benchmark baseline (Dev F1=<strong>0.4571</strong>, ROC-AUC=<strong>0.7159</strong>; Ridge CCC=<strong>0.3211</strong>, RMSE=<strong>4.9812</strong>).</li>
+                <li><strong>Phase 17B &amp; 17B.1 (MiniLM Dense Embeddings):</strong> Frozen <code>all-MiniLM-L6-v2</code> embeddings established dense semantic baselines (Dev F1=0.4000, CCC=0.3057), which were systematically audited and tuned.</li>
+                <li><strong>Phase 18A (Chronological Segmentation):</strong> Partitioning transcripts into early, middle, and late segments showed that the <em>middle segment</em> (where Ellie probes mood, relationships, and sleep) yields peak classification performance (F1=<strong>0.5161</strong>, BalAcc=<strong>0.7083</strong>).</li>
+                <li><strong>Phase 18B (DistilBERT Embeddings &amp; Fixed Pooling):</strong> Attention-mask-aware mean pooling over frozen DistilBERT chunks produced the highest regression agreement in the project: <code>whole__mean_std</code> achieved Dev CCC=<strong>0.4048</strong> (RMSE=5.3423) and <code>middle__mean</code> achieved CCC=<strong>0.4022</strong>.</li>
+                <li><strong>Phase 18C (Trainable Attention Pooling):</strong> Adding a 2-layer MLP additive attention pooling head retained high ROC-AUC (0.7121–0.7348 across seeds) but caused significant target variance compression in regression, failing to beat fixed pooling.</li>
+            </ol>
+        </div>
+
+        <div class="figure-box" style="margin-bottom: 2rem;">
+            <img src="visualizations/text/text_pipeline_progression.png" alt="Text Pipeline Architecture Progression">
+            <div class="figure-caption"><strong>Figure 6.1:</strong> Architectural progression across Phases 17A through 18C for classification (F1 &amp; ROC-AUC) and continuous regression (CCC).</div>
+        </div>
+
+        <div class="grid-2">
+            <div class="figure-box">
+                <img src="visualizations/text/text_attention_seed_stability.png" alt="Attention Seed Stability">
+                <div class="figure-caption"><strong>Figure 6.2:</strong> Multi-seed stability analysis for attention pooling across Seeds 42, 123, and 456 on whole-interview and middle-segment chunks.</div>
+            </div>
+            <div class="figure-box">
+                <img src="visualizations/text/text_regression_r2_comparison.png" alt="Text Regression R2 Comparison">
+                <div class="figure-caption"><strong>Figure 6.3:</strong> Coefficient of Determination (R²) across text models, demonstrating positive variance explained for tuned Ridge models.</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 7. METHODOLOGY & LIMITATIONS -->
+    <section id="methodology" class="section-block">
+        <div class="section-header">
+            <h2>7. Research Methodology &amp; Scientific Limitations</h2>
+            <p>Participant-level isolation, cross-validation discipline, and clinical benchmark constraints</p>
+        </div>
+
+        <div class="card">
+            <div class="grid-2">
+                <div>
+                    <h4 style="color: var(--primary); margin-bottom: 0.5rem;">Participant-Level Cross-Validation Hygiene</h4>
+                    <p style="font-size: 0.95rem; line-height: 1.7; color: #334155;">All chunk embeddings, acoustic frames, and feature tables are grouped strictly by participant identifier. Chunks or frames from the same individual never cross train and validation folds. Standard scalers and decision thresholds are fitted exclusively on training folds.</p>
+                </div>
+                <div>
+                    <h4 style="color: var(--primary); margin-bottom: 0.5rem;">Test Set Quarantine Guarantee</h4>
+                    <p style="font-size: 0.95rem; line-height: 1.7; color: #334155;">The official Test split (n=56 participants) remains 100% quarantined. Zero test labels or test predictions are displayed on this dashboard or used for model tuning. Test evaluation is reserved strictly for the designated final release phase.</p>
+                </div>
+                <div>
+                    <h4 style="color: var(--primary); margin-bottom: 0.5rem;">Evaluation Cohort Transparency</h4>
+                    <p style="font-size: 0.95rem; line-height: 1.7; color: #334155;">3-segment concatenation requires all three interview phases (early, middle, late), resulting in a matched cohort of 54 Development participants (10 depressed). Whole-interview models evaluate all 56 participants (12 depressed). Cohort sizes are explicitly distinguished in all tables.</p>
+                </div>
+                <div>
+                    <h4 style="color: var(--primary); margin-bottom: 0.5rem;">Why CCC &ne; Pearson Correlation</h4>
+                    <p style="font-size: 0.95rem; line-height: 1.7; color: #334155;">Pearson's r measures linear association but is invariant to shift and scale errors. Lin's Concordance Correlation Coefficient (CCC) penalizes both slope deviation and mean bias against the identity line (y = ŷ), making it the gold standard for clinical severity agreement.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 8. REPRODUCIBILITY -->
+    <section id="reproducibility" class="section-block">
+        <div class="section-header">
+            <h2>8. Recommended Models &amp; Reproducibility Guide</h2>
+            <p>Preserved benchmark candidates and self-contained reproduction scripts</p>
+        </div>
+
+        <div class="card">
+            <h3>Recommended Primary Benchmark Candidates</h3>
+            <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1.25rem;">Selected based on multi-metric balance, reproducibility, and rigorous forensic verification:</p>
+
+            <div class="kpi-grid">
+                <div class="kpi-card">
+                    <div class="kpi-lbl">Rec. Audio Classifier</div>
+                    <div class="kpi-val" style="font-size: 1.3rem;">Raw MFCC LinearSVC</div>
+                    <div class="kpi-sub">F1 = 0.4000 &middot; ROC-AUC = 0.6761 &middot; 78-d</div>
+                </div>
+                <div class="kpi-card accent-orange">
+                    <div class="kpi-lbl">Rec. Text Classifier</div>
+                    <div class="kpi-val" style="font-size: 1.3rem;">DistilBERT Whole Median</div>
+                    <div class="kpi-sub">F1 = 0.4516 &middot; ROC-AUC = 0.6591 &middot; 768-d</div>
+                </div>
+                <div class="kpi-card accent-orange">
+                    <div class="kpi-lbl">Rec. Audio Regressor</div>
+                    <div class="kpi-val" style="font-size: 1.3rem;">Raw MFCC Ridge</div>
+                    <div class="kpi-sub">CCC = 0.2844 &middot; RMSE = 6.22 &middot; 78-d</div>
+                </div>
+                <div class="kpi-card accent-green">
+                    <div class="kpi-lbl">Rec. Text Regressor</div>
+                    <div class="kpi-val" style="font-size: 1.3rem;">DistilBERT Mean_Std</div>
+                    <div class="kpi-sub">CCC = 0.4048 &middot; RMSE = 5.34 &middot; 1536-d</div>
+                </div>
+            </div>
+
+            <h4 style="margin-top: 1.5rem; color: var(--primary);">To Reproduce Figures &amp; Curated Benchmarks:</h4>
+            <pre style="background: #0f172a; color: #f8fafc; padding: 1.25rem; border-radius: 8px; overflow-x: auto; font-size: 0.88rem; line-height: 1.6; margin: 0.75rem 0;">
+# 1. Generate all publication figures (25 high-resolution PNGs)
+python ml-training/code/visualization/generate_phase20_visualizations.py
+
+# 2. Inspect curated benchmark CSVs
+cat ml-training/benchmarks/classification_benchmark.csv
+cat ml-training/benchmarks/regression_benchmark.csv
+cat ml-training/benchmarks/curated_model_comparison.csv
+
+# 3. View audit reports
+cat ml-training/outputs/visualization_audit/source_inventory.md
+cat ml-training/outputs/visualization_audit/visualization_validation_report.md
+            </pre>
+        </div>
+    </section>
+
+</div>
+
+<footer>
+    <p><strong>BimodalPsycheAI Benchmark Suite</strong> &middot; Department of Computer Science &amp; Cognitive Engineering</p>
+    <p style="margin-top: 0.5rem; opacity: 0.8;">Phase 20 Publication Bundle &middot; Static, Self-Contained Research Dashboard &middot; Evaluated on USC ICT E-DAIC</p>
+</footer>
+
+</body>
+</html>
