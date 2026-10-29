@@ -324,7 +324,7 @@ python code/experiments/run_classical_final_test.py
 # Summarize model benchmark performance across classification and regression
 python code/scripts/summarize_models.py
 ```
-
+##### Contributors- Dhananjay Saini, Dhruv Saxena.
 ---
 
 ### 5. Frontend Client (Next.js)
