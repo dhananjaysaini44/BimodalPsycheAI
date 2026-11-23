@@ -1,6 +1,7 @@
 # Environment / secrets
 .env
-.env.local
+.env.development
+.env.production
 *.env
 
 # Databases
@@ -21,10 +22,58 @@ ml-engine/models/*.h5
 backend/uploads/
 storage/
 
+# Node.js / Next.js
 node_modules/
+.next/
+out/
+.vercel/
+.turbo/
 dist/
+build/
+
+# Python
 __pycache__/
 *.pyc
+.pytest_cache/
+.coverage
+*.egg-info/
+
+# Java / Maven
+target/
+.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+HELP.md
+
+### STS ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+
+### IntelliJ IDEA ###
+.idea
+*.iws
+*.iml
+*.ipr
+
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+build/
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+### VS Code ###
+.vscode/
+
 
 # Allow tracking of diagrams/markdowns, but exclude specific outputs if needed
 # (Mermaid files .mermaid are allowed and tracked by default now that Architecture/ is not ignored)

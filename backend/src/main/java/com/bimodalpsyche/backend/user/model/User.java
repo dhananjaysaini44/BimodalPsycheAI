@@ -81,6 +81,16 @@ public class User implements UserDetails {
 
     private LocalDateTime consentAcceptedAt;
 
+    @Column(length = 32)
+    private String termsVersion;
+
+    private LocalDateTime termsAcceptedAt;
+
+    @Column(length = 32)
+    private String privacyPolicyVersion;
+
+    private LocalDateTime privacyPolicyAcceptedAt;
+
     @CreationTimestamp
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
