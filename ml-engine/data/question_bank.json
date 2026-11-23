@@ -1,0 +1,39 @@
+{
+  "themes": [
+    {
+      "id": "mood",
+      "light": "How's your week been so far?",
+      "deep": "It sounds like things have been heavy lately — want to tell me more about that?"
+    },
+    {
+      "id": "sleep",
+      "light": "How have you been sleeping?",
+      "deep": "Has your sleep been affected by how you've been feeling?"
+    },
+    {
+      "id": "energy",
+      "light": "How's your energy been lately?",
+      "deep": "Have you noticed it's been harder to get through the day?"
+    },
+    {
+      "id": "social",
+      "light": "Have you been spending time with friends or family?",
+      "deep": "Have you found yourself pulling away from people lately?"
+    },
+    {
+      "id": "concentration",
+      "light": "How's it been to focus on things — work, study, hobbies?",
+      "deep": "Has it felt harder than usual to concentrate on things?"
+    },
+    {
+      "id": "self_worth",
+      "light": "How have you been feeling about yourself lately?",
+      "deep": "Have you been feeling down on yourself more than usual?"
+    },
+    {
+      "id": "outlook",
+      "light": "How are you feeling about things going forward?",
+      "deep": "Has it felt hard to see things getting better lately?"
+    }
+  ]
+}
