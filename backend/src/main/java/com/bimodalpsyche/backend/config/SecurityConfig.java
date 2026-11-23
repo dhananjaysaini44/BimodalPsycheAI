@@ -14,7 +14,10 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @Configuration
@@ -28,11 +31,21 @@ public class SecurityConfig {
                 .csrf(customizer-> customizer.disable())
                 .authorizeHttpRequests(auth->
                         auth
-                                .requestMatchers("/auth/**").permitAll()
+                                .requestMatchers(
+                                        HttpMethod.POST,
+                                        "/auth/register",
+                                        "/auth/login",
+                                        "/auth/send-otp",
+                                        "/auth/verify-otp",
+                                        "/auth/refresh",
+                                        "/auth/logout"
+                                ).permitAll()
                                 .anyRequest().authenticated()
                 )
                 .formLogin(form->form.disable())
                 .httpBasic(form-> form.disable())
+                // Unauthenticated requests get 401 (Spring's default here would be 403)
+                .exceptionHandling(ex-> ex.authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))
                 .sessionManagement(session->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )

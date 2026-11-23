@@ -1,53 +1,130 @@
 # Environment / secrets
 .env
-.env.local
+.env.development
+.env.production
 *.env
+.env.*
+!.env.example
+!.env.sample
+!.env.template
+
+# Local overrides and credentials
+.env.*.local
+!.env.example.*
+!.env.sample.*
 
 # Databases
 *.db
 *.sqlite
 
-# Java / Maven build output
-backend/target/
-target/
-*.class
-
-# Datasets — E-DAIC / MDDInterview must never be committed (data-use agreement)
+# Datasets — E-DAIC/MDDInterview must never be committed (data-use agreement)
 ml-training/datasets/*
 !ml-training/datasets/README.md
 
-# Private USC E-DAIC Data (Restricted under USC ICT Data-Use Agreement)
-ml-training/edaic-woz/
-ml-training/edaic_woz/
-
-# Generated Dataset & Experiment Artifacts (Heavy local files)
-ml-training/dataset/
-ml-training/outputs/
-ml-training/**/.cache/
-ml-training/**/.ipynb_checkpoints/
-ml-training/**/__pycache__/
-
-# Checkpoints and models — too large for git
-ml-training/checkpoints/
+# Trained model artifacts — too large for git, and may embed dataset traces
 ml-engine/models/*.pkl
 ml-engine/models/*.pt
 ml-engine/models/*.h5
-ml-engine/models/*.onnx
-ml-engine/models/*.bin
 !ml-engine/models/README.md
 
 # Audio files (encrypted at rest, but shouldn't be in git regardless)
 backend/uploads/
 storage/
+audio_files/
+backend/audio_files/
+data/audio/
+backend/data/audio/
 
-# Python & Node dependencies and build artifacts
+# Node.js / Next.js
 node_modules/
+.next/
+out/
+.vercel/
+.turbo/
 dist/
-__pycache__/
-*.pyc
-*.pyo
-.pytest_cache/
-.ipynb_checkpoints/
+build/
 
-# Logs
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.coverage
+*.egg-info/
+**/.venv/
+**/venv/
+**/env/
+**/virtualenv/
+**/ENV/
+.Python
+pip-wheel-metadata/
+.mypy_cache/
+.ruff_cache/
+.tox/
+.nox/
+noxfile.local.py
+htmlcov/
+hs_err_pid*
+
+# Machine-generated logs and temporary files
 *.log
+*.tmp
+*.temp
+*.swp
+*.swo
+*.bak
+
+# Operating-system metadata
+.DS_Store
+.AppleDouble
+.LSOverride
+Thumbs.db
+Desktop.ini
+
+# IntelliJ IDEA local workspace files (root and nested project modules)
+**/.idea/shelf/
+**/.idea/workspace.xml
+**/.idea/httpRequests/
+**/.idea/queries/
+**/.idea/dataSources/
+**/.idea/dataSources.local.xml
+
+# Java / Maven
+target/
+.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+HELP.md
+
+### STS ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+
+### IntelliJ IDEA ###
+.idea
+*.iws
+*.iml
+*.ipr
+
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+build/
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+### VS Code ###
+.vscode/
+
+
+# Allow tracking of diagrams/markdowns, but exclude specific outputs if needed
+# (Mermaid files .mermaid are allowed and tracked by default now that Architecture/ is not ignored)

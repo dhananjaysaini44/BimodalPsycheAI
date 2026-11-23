@@ -35,6 +35,8 @@ public class RefreshToken {
     @Column(nullable = false)
     private boolean revoked;
 
+    private Integer tokenVersion;
+
     @CreationTimestamp
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;

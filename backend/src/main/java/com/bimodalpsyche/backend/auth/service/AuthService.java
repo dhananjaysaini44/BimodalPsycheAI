@@ -1,18 +1,19 @@
 package com.bimodalpsyche.backend.auth.service;
 
 import com.bimodalpsyche.backend.auth.dto.LoginRequest;
+import com.bimodalpsyche.backend.auth.exception.InvalidTokenException;
 import com.bimodalpsyche.backend.auth.model.RefreshToken;
 import com.bimodalpsyche.backend.auth.repository.RefreshTokenRepository;
 import com.bimodalpsyche.backend.auth.security.JWTService;
 import com.bimodalpsyche.backend.auth.security.TokenHashUtil;
 import com.bimodalpsyche.backend.user.model.User;
 import com.bimodalpsyche.backend.user.repository.UserRepository;
-import jakarta.validation.Valid;
+import io.jsonwebtoken.JwtException;
+import jakarta.transaction.Transactional;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -36,85 +37,105 @@ public class AuthService {
         this.userRepository = userRepository;
     }
 
-    public LoginTokens login(@Valid LoginRequest loginRequest){
+    @Transactional
+    public LoginTokens login(LoginRequest loginRequest){
         Authentication authentication=authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(loginRequest.getEmail(),loginRequest.getPassword()));
 
         String username=authentication.getName();
 
-        String accessToken= jwtService.generateAccessToken(username);
+        User user =userRepository.findByEmail(username).orElseThrow(()->new BadCredentialsException("Invalid Credentials"));
+
         String refreshToken=jwtService.generateRefreshToken(username);
 
-        User user =userRepository.findByEmail(username).orElseThrow(()->new UsernameNotFoundException("User not found with email "+username));
-        refreshTokenRepository.deleteByUser(user);
-
-        RefreshToken token = new RefreshToken();
+        // One refresh token row per user; a new login replaces (and so invalidates) the previous one
+        RefreshToken token = refreshTokenRepository.findByUser(user).orElse(new RefreshToken());
         token.setUser(user);
         token.setTokenHash(TokenHashUtil.hash(refreshToken));
         token.setExpiresAt(LocalDateTime.now().plusDays(7));
         token.setRevoked(false);
+        token.setTokenVersion(token.getTokenVersion() == null ? 1 : token.getTokenVersion() + 1);
 
-        refreshTokenRepository.save(token);
+        RefreshToken savedToken = refreshTokenRepository.saveAndFlush(token);
+        String accessToken = jwtService.generateAccessToken(
+                username, savedToken.getId(), savedToken.getTokenVersion());
 
         return new LoginTokens(accessToken, refreshToken);
     }
 
+    @Transactional(dontRollbackOn = InvalidTokenException.class)
     public LoginTokens refreshTokens(String refreshToken) {
 
-        if (!jwtService.isRefreshToken(refreshToken)) {
-            throw new RuntimeException("Invalid refresh token");
-        }
-
-        String username = jwtService.extractUsername(refreshToken);
+        String username = usernameFromRefreshToken(refreshToken);
 
         User user = userRepository.findByEmail(username)
-                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+                .orElseThrow(() -> new InvalidTokenException("Invalid refresh token"));
 
-        RefreshToken storedToken = refreshTokenRepository.findByUser(user)
-                .orElseThrow(() -> new RuntimeException("Refresh token not found"));
+        RefreshToken storedToken = refreshTokenRepository.findByUserForUpdate(user)
+                .orElseThrow(() -> new InvalidTokenException("Invalid refresh token"));
 
-        if (storedToken.isRevoked()) {
-            throw new RuntimeException("Refresh token has been revoked");
+        if (storedToken.isRevoked() || storedToken.getExpiresAt().isBefore(LocalDateTime.now())) {
+            throw new InvalidTokenException("Invalid refresh token");
         }
 
-        if (storedToken.getExpiresAt().isBefore(LocalDateTime.now())) {
-            throw new RuntimeException("Refresh token expired");
+        if (!TokenHashUtil.matches(refreshToken, storedToken.getTokenHash())) {
+            // A validly signed but already-rotated token means it was replayed (likely stolen):
+            // revoke the current token too so both parties have to log in again
+            storedToken.setRevoked(true);
+            refreshTokenRepository.save(storedToken);
+            throw new InvalidTokenException("Invalid refresh token");
         }
 
-        if (!TokenHashUtil.hash(refreshToken).equals(storedToken.getTokenHash())) {
-            throw new RuntimeException("Invalid refresh token");
-        }
-
-        String newAccessToken = jwtService.generateAccessToken(username);
         String newRefreshToken = jwtService.generateRefreshToken(username);
 
+        if (storedToken.getTokenVersion() == null) {
+            storedToken.setTokenVersion(1);
+        }
         storedToken.setTokenHash(TokenHashUtil.hash(newRefreshToken));
         storedToken.setExpiresAt(LocalDateTime.now().plusDays(7));
-        storedToken.setRevoked(false);
 
-        refreshTokenRepository.save(storedToken);
+        RefreshToken savedToken = refreshTokenRepository.saveAndFlush(storedToken);
+        String newAccessToken = jwtService.generateAccessToken(
+                username, savedToken.getId(), savedToken.getTokenVersion());
 
         return new LoginTokens(newAccessToken, newRefreshToken);
     }
 
+    @Transactional
     public void logout(String refreshToken) {
 
         if (refreshToken == null || refreshToken.isBlank()) {
             return;
         }
 
-        String username = jwtService.extractUsername(refreshToken);
+        String username;
+        try {
+            username = usernameFromRefreshToken(refreshToken);
+        } catch (InvalidTokenException e) {
+            // Nothing to revoke; the cookie is cleared by the controller anyway
+            return;
+        }
 
-        User user = userRepository.findByEmail(username)
-                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+        userRepository.findByEmail(username)
+                .flatMap(refreshTokenRepository::findByUserForUpdate)
+                // Only the holder of the current token may revoke it
+                .filter(stored -> TokenHashUtil.matches(refreshToken, stored.getTokenHash()))
+                .ifPresent(stored -> {
+                    stored.setRevoked(true);
+                    refreshTokenRepository.save(stored);
+                });
+    }
 
-        RefreshToken storedToken = refreshTokenRepository.findByUser(user)
-                .orElseThrow(() -> new RuntimeException("Refresh token not found"));
-
-        storedToken.setRevoked(true);
-        refreshTokenRepository.save(storedToken);
+    private String usernameFromRefreshToken(String refreshToken) {
+        try {
+            if (!jwtService.isRefreshToken(refreshToken)) {
+                throw new InvalidTokenException("Invalid refresh token");
+            }
+            return jwtService.extractUsername(refreshToken);
+        } catch (JwtException | IllegalArgumentException e) {
+            throw new InvalidTokenException("Invalid refresh token");
+        }
     }
 
     public record LoginTokens(String accessToken, String refreshToken) {}
 }
-
