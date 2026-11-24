@@ -80,6 +80,15 @@ public class AssessmentSessionService {
     }
 
     @Transactional(readOnly = true)
+    public List<SessionResponse> findAll(String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+        return sessionRepository.findAllByUser_IdOrderByCreatedAtDesc(user.getId()).stream()
+                .map(SessionResponse::from)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
     public SessionResponse get(Long sessionId, String email) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found"));

@@ -15,6 +15,7 @@ function LoginFormContent() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const isRegistrationComplete = searchParams.get("registered") === "1";
+  const isSessionExpired = searchParams.get("sessionExpired") === "1";
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -61,6 +62,12 @@ function LoginFormContent() {
           {isRegistrationComplete && (
             <div className="auth-success" role="status">
               Your email is verified and account is ready. Sign in to continue.
+            </div>
+          )}
+
+          {isSessionExpired && (
+            <div className="auth-error" role="alert">
+              Your login session has expired. Please sign in again to continue.
             </div>
           )}
 

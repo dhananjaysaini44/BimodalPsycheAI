@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { authApi } from "@/lib/api";
+import { authApi, tokenManager } from "@/lib/api";
 import type { RegisterRequest } from "@/lib/api";
 import AuthLayout from "@/components/AuthLayout";
 
@@ -127,7 +127,9 @@ export default function SignupPage() {
         setIsOtpVerified(true);
       }
       await authApi.register(toRegisterRequest(formData, consentAccepted));
-      router.push(`/login?registered=1&email=${encodeURIComponent(formData.email.trim())}`);
+      const login = await authApi.login(formData.email, formData.password);
+      tokenManager.setAccessToken(login.token);
+      router.replace("/dashboard");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not complete registration. Please try again.");
     } finally {

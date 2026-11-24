@@ -81,7 +81,10 @@ export const apiClient = {
         headers,
         credentials: "include",
       });
-      if (response.status === 401) tokenManager.clearTokens();
+      if (response.status === 401) {
+        tokenManager.clearTokens();
+        tokenManager.notifySessionExpired();
+      }
     }
 
     if (!response.ok) {
@@ -248,6 +251,20 @@ export interface TurnResponse {
   createdAt: string;
 }
 
+export interface TurnHistoryResponse {
+  id: number;
+  turnNumber: number;
+  questionText: string;
+  responseType: "TEXT" | "AUDIO";
+  responseText: string | null;
+  audio: { id: number; filename: string; mimeType: string; sizeBytes: number } | null;
+  sentimentScore: number | null;
+  crisisDetected: boolean;
+  crisisGuidance: string | null;
+  crisisResources: CrisisResource[];
+  createdAt: string;
+}
+
 export interface AudioTurnResponse {
   turnId: number;
   turnNumber: number;
@@ -272,6 +289,10 @@ export interface AssessmentResponse {
 }
 
 export const sessionApi = {
+  list() {
+    return apiClient.get<SessionResponse[]>("/session");
+  },
+
   get(sessionId: number) {
     return apiClient.get<SessionResponse>(`/session/${sessionId}`);
   },
@@ -282,6 +303,18 @@ export const sessionApi = {
 
   resume(sessionId: number) {
     return apiClient.post<SessionResponse>(`/session/resume/${sessionId}`);
+  },
+
+  abandon(sessionId: number) {
+    return apiClient.post<SessionResponse>(`/session/abandon/${sessionId}`);
+  },
+
+  delete(sessionId: number) {
+    return apiClient.delete<void>(`/session/${sessionId}`);
+  },
+
+  getTurns(sessionId: number) {
+    return apiClient.get<TurnHistoryResponse[]>(`/session/${sessionId}/turns`);
   },
 
   nextQuestion(sessionId: number) {
@@ -324,6 +357,7 @@ async function restoreAccessToken(): Promise<string> {
       })
       .catch((error: unknown) => {
         tokenManager.clearTokens();
+        tokenManager.notifySessionExpired();
         throw error;
       })
       .finally(() => {
@@ -337,6 +371,7 @@ export const tokenManager = {
   setAccessToken(token: string) {
     if (typeof window !== "undefined") {
       accessToken = token;
+      window.localStorage.setItem("psycheai-authenticated", "true");
     }
   },
 
@@ -350,6 +385,24 @@ export const tokenManager = {
   clearTokens() {
     if (typeof window !== "undefined") {
       accessToken = null;
+    }
+  },
+
+  hasAuthenticatedSession(): boolean {
+    return typeof window !== "undefined"
+      && window.localStorage.getItem("psycheai-authenticated") === "true";
+  },
+
+  clearSession() {
+    this.clearTokens();
+    if (typeof window !== "undefined") {
+      window.localStorage.removeItem("psycheai-authenticated");
+    }
+  },
+
+  notifySessionExpired() {
+    if (this.hasAuthenticatedSession() && typeof window !== "undefined") {
+      window.dispatchEvent(new Event("psycheai:session-expired"));
     }
   },
 };

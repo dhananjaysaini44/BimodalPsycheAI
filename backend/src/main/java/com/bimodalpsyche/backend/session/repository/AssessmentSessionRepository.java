@@ -21,6 +21,8 @@ public interface AssessmentSessionRepository extends JpaRepository<AssessmentSes
 
     List<AssessmentSession> findAllByUser_Id(Long userId);
 
+    List<AssessmentSession> findAllByUser_IdOrderByCreatedAtDesc(Long userId);
+
     Optional<AssessmentSession> findByIdAndUser_Email(Long id, String email);
 
     Optional<AssessmentSession> findByIdAndUser_EmailAndStatus(
