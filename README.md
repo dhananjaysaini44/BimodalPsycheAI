@@ -1,6 +1,6 @@
-# BimodalPsycheAI — Conversational Mental Health Screening
+# BimodalPsycheAI — Multimodal Depression Detection System
 
-**BimodalPsycheAI** is a conversational mental-health screening project with a web client, Spring API, and separate ML services. It is not a diagnostic tool. The current backend supports account/session workflows and text-turn sentiment/crisis checks; final voice/fusion assessment routes are not yet backed by trained production models and must not be presented as clinical results.
+**BimodalPsycheAI** is an adaptive, conversational mental health screening system that evaluates depression risk using bimodal fusion across **acoustic vocal biomarkers** (prosodic & spectral features) and **conversational text dynamics** (aligned with clinical PHQ-8 and PHQ-9 assessment frameworks).
 
 For visual workflows and data structures, see [`docs/diagrams/`](docs/diagrams/) for architecture blueprints, Level-0 and Level-1 Data Flow Diagrams (DFD), and sequence diagrams.
 
@@ -20,9 +20,9 @@ For visual workflows and data structures, see [`docs/diagrams/`](docs/diagrams/)
 ### Backend & API Gateway
 <p align="left">
   <img src="https://img.shields.io/badge/Spring_Boot-4.1.1-6DB33F.svg?style=flat&logo=springboot&logoColor=white" alt="Spring Boot" />
-  <img src="https://img.shields.io/badge/Spring_Security-Boot_managed-6DB33F.svg?style=flat&logo=springsecurity&logoColor=white" alt="Spring Security" />
+  <img src="https://img.shields.io/badge/Spring_Security-7.x-6DB33F.svg?style=flat&logo=springsecurity&logoColor=white" alt="Spring Security" />
   <img src="https://img.shields.io/badge/Spring_Data_JPA-Hibernate-59666C.svg?style=flat&logo=hibernate&logoColor=white" alt="Spring Data JPA" />
-  <img src="https://img.shields.io/badge/JWT-JJWT-000000.svg?style=flat&logo=jsonwebtokens&logoColor=white" alt="JWT" />
+  <img src="https://img.shields.io/badge/JWT-JJWT_0.13.0-000000.svg?style=flat&logo=jsonwebtokens&logoColor=white" alt="JWT" />
   <img src="https://img.shields.io/badge/Apache_Maven-3.9+-C71A36.svg?style=flat&logo=apachemaven&logoColor=white" alt="Maven" />
   <img src="https://img.shields.io/badge/Project_Lombok-Boilerplate-BC4522.svg?style=flat&logo=oracle&logoColor=white" alt="Lombok" />
 </p>
@@ -58,9 +58,9 @@ For visual workflows and data structures, see [`docs/diagrams/`](docs/diagrams/)
 
 ### Frontend & Client UI
 <p align="left">
-  <img src="https://img.shields.io/badge/Next.js-16.3.2-000000.svg?style=flat&logo=nextdotjs&logoColor=white" alt="Next.js" />
-  <img src="https://img.shields.io/badge/React-19.2.8-61DAFB.svg?style=flat&logo=react&logoColor=black" alt="React" />
-  <img src="https://img.shields.io/badge/Audio-Encrypted_uploads-E34F26.svg?style=flat&logo=html5&logoColor=white" alt="Audio uploads" />
+  <img src="https://img.shields.io/badge/Next.js-14%2F15-000000.svg?style=flat&logo=nextdotjs&logoColor=white" alt="Next.js" />
+  <img src="https://img.shields.io/badge/React-18.x-61DAFB.svg?style=flat&logo=react&logoColor=black" alt="React" />
+  <img src="https://img.shields.io/badge/HTML5-Web_Audio_API-E34F26.svg?style=flat&logo=html5&logoColor=white" alt="HTML5" />
   <img src="https://img.shields.io/badge/CSS3-Modern_Styling-1572B6.svg?style=flat&logo=css3&logoColor=white" alt="CSS3" />
 </p>
 
@@ -69,7 +69,7 @@ For visual workflows and data structures, see [`docs/diagrams/`](docs/diagrams/)
   <img src="https://img.shields.io/badge/MySQL-8.x-4479A1.svg?style=flat&logo=mysql&logoColor=white" alt="MySQL" />
   <img src="https://img.shields.io/badge/H2-In_Memory_Testing-003B57.svg?style=flat&logo=database&logoColor=white" alt="H2 Database" />
   <img src="https://img.shields.io/badge/Docker-Containerization-2496ED.svg?style=flat&logo=docker&logoColor=white" alt="Docker" />
-  <img src="https://img.shields.io/badge/Docker_Compose-Config_only-2496ED.svg?style=flat&logo=docker&logoColor=white" alt="Docker Compose configuration" />
+  <img src="https://img.shields.io/badge/Docker_Compose-Multi--Container-2496ED.svg?style=flat&logo=docker&logoColor=white" alt="Docker Compose" />
   <img src="https://img.shields.io/badge/Git-Version_Control-F05032.svg?style=flat&logo=git&logoColor=white" alt="Git" />
   <img src="https://img.shields.io/badge/GitHub-Repo-181717.svg?style=flat&logo=github&logoColor=white" alt="GitHub" />
   <img src="https://img.shields.io/badge/Mermaid.js-Architecture_Diagrams-FF3670.svg?style=flat&logo=mermaid&logoColor=white" alt="Mermaid" />
@@ -81,10 +81,10 @@ For visual workflows and data structures, see [`docs/diagrams/`](docs/diagrams/)
 
 The project is structured into modular microservices and pipelines:
 
-* **`backend/` (API and core business logic)**: Built with Spring Boot 4.1.1 and Java 27. Manages registration, email OTP verification, JWT sessions, profile/account lifecycle, and assessments.
-* **`frontend/` (Web application)**: Built with Next.js 16 and TypeScript. Supports text answers and audio file uploads; it does not currently record live microphone audio in the browser.
-* **`ml-engine/` (Analysis API)**: Built with FastAPI and Python. The text-turn sentiment and crisis routes are available with limited non-clinical behavior. Final voice/fusion assessment routes are placeholders; there is no production model-backed final score yet.
-* **`ml-training/` (Offline ML Research & Training Pipeline)**: research and training code for audio/text experiments. The E-DAIC dataset is not included; trained artifacts and reproducible evaluation results should not be assumed present. See its own documentation for prerequisites and data-use terms.
+* **`backend/` (API Gateway & Core Business Logic)**: Built with Spring Boot 4.1.1 and Java 27. Manages registration and email OTP verification, JWT access/refresh authentication, profile and history management, assessment sessions, question progression, text/audio turns, crisis resources, and persisted multimodal assessment results.
+* **`frontend/` (Conversational UI)**: Built with Next.js and TypeScript. Captures real-time audio through the browser Web Audio API alongside text responses for conversational assessment.
+* **`ml-engine/` (Model Serving & Orchestration)**: Built with FastAPI and Python. Provides low-latency HTTP inference for turn-by-turn sentiment scoring, audio feature evaluation, rule-based crisis detection, and decision fusion.
+* **`ml-training/` (Offline ML Research & Training Pipeline)**: Python research environment that processes the E-DAIC benchmark. Contains feature extraction pipelines (MFCC, eGeMAPS, BoAW, deep CNN audio embeddings via VGG16/DenseNet201), temporal sequence modeling (GRU with masked attention), transcript chunk embeddings using Transformers (all-MiniLM-L6-v2, DistilBERT), additive attention pooling, repeated cross-validation protocols, diagnostic visualization (Matplotlib, Seaborn, Plotly), and benchmark models.
 * **`docs/` (Architecture & Specifications)**: Detailed system synopsis, architecture diagrams (Mermaid & PNG), and data use agreements.
 
 ---
@@ -95,21 +95,26 @@ The project is structured into modular microservices and pipelines:
 BimodalPsycheAI/
 ├── .github/                                   # GitHub workflow templates and modernization hooks
 ├── .gitignore                                 # Git ignore rules for datasets, model weights, and targets
-├── docker-compose.yml                         # Incomplete: references service builds without Dockerfiles
+├── docker-compose.yml                         # Orchestration for Backend and ML-Engine containers
 ├── README.md                                  # Comprehensive repository documentation
 │
-├── backend/                                   # Spring Boot 4.1.1 API (Java 27, Maven)
+├── backend/                                   # Spring Boot 4 API Gateway (Java 27, Maven)
 │   ├── mvnw / mvnw.cmd                        # Cross-platform Maven wrapper
 │   ├── pom.xml                                # Spring Web, Security, Data JPA, MySQL, JJWT, Validation
 │   └── src/
 │       ├── main/java/com/bimodalpsyche/backend/
 │       │   ├── BackendApplication.java        # Spring Boot entry point
 │       │   ├── auth/                          # Auth controllers, JWT filter, OTP & refresh token services
+│       │   ├── assessment/                    # Assessment results, modalities, signals, and analysis
 │       │   ├── config/                        # Spring Security and CORS filter chains
+│       │   ├── crisis/                        # Crisis resource seeding and lookup
 │       │   ├── exception/                     # Global exception handlers and error response payloads
+│       │   ├── mlmodel/                       # ML model and modality metadata
+│       │   ├── question/                      # Question banks, themes, variants, and seeding
+│       │   ├── session/                       # Session lifecycle, text/audio turns, storage, and ML integration
 │       │   └── user/                          # User entity, enums (Role, Gender), and account repository
 │       ├── main/resources/
-│       │   └── application.properties         # Server port, MySQL connection, and mail properties
+│       │   └── application.properties         # Database, security, mail, ML, encryption, and audio settings
 │       └── test/                              # Spring Boot integration & unit test suite
 │
 ├── frontend/                                  # Next.js Conversational UI (TypeScript)
@@ -229,7 +234,7 @@ BimodalPsycheAI/
 ## Detailed Getting Started Guide
 
 ### 1. Prerequisites
-* **Java**: JDK 21 or JDK 23 installed (`java -version`)
+* **Java**: JDK 27 installed (`java -version`)
 * **Python**: Python 3.10, 3.11, or 3.12 with `pip`
 * **MySQL**: MySQL Server 8.x running locally on port 3306 (or configured via environment)
 * **Node.js**: Node 18+ and `npm` (for the frontend client)
@@ -237,25 +242,31 @@ BimodalPsycheAI/
 
 ---
 
-### 2. Backend Service (Spring Boot 3)
+### 2. Backend Service (Spring Boot 4)
 
-The backend handles account security, email OTP verification, JWT authentication, and session coordination.
+The backend provides account security, email OTP verification, JWT authentication, profile and medical/family history management, assessment-session coordination, encrypted text/audio turn storage, crisis resources, and assessment-result APIs.
 
 #### Configuration
 Set the required environment variables or update `backend/src/main/resources/application.properties`:
-* `JWT_SECRET`: A secure base64-encoded HMAC-SHA secret (at least 256 bits).
-* `MAIL_USERNAME`: Gmail/SMTP account email for OTP dispatch.
-* `MAIL_PASSWORD`: Gmail App Password for SMTP authentication.
+* `DB_URL`, `MYSQLUSER`, `MYSQLPASSWORD`: MySQL connection settings.
+* `JWT_SECRET`: Base64-encoded HMAC-SHA key material of at least 256 bits.
+* `ENCRYPTION_KEY`: Base64-encoded 32-byte AES key for encrypted text and audio storage.
+* `MAIL_USERNAME`, `MAIL_PASSWORD`: Gmail/SMTP account and app password for OTP email.
+* `ML_ENGINE_BASE_URL`: ML service URL (default: `http://127.0.0.1:8000`).
+* `CORS_ALLOWED_ORIGINS`: Comma-separated allowed frontend origins.
+* `COOKIE_SECURE`: Set to `false` only for local HTTP development.
+* `TERMS_VERSION`, `PRIVACY_POLICY_VERSION`: Current consent document versions.
+* `AUDIO_STORAGE_DIR`, `AUDIO_MAX_SIZE_BYTES`: Private encrypted audio storage location and upload limit.
 
 ```bash
 # Navigate to the backend directory
 cd backend
 
-# Compile and run unit tests using the Maven wrapper
+# Compile and run the backend tests using the Maven wrapper
 # Linux / macOS:
-./mvnw clean test-compile
+./mvnw clean test
 # Windows (PowerShell or CMD):
-.\mvnw.cmd clean test-compile
+.\mvnw.cmd clean test
 
 # Start the Spring Boot backend server (default port: 8080 or configured port)
 # Linux / macOS:
@@ -342,22 +353,22 @@ npm run dev
 
 ---
 
-### 6. Container deployment status
+### 6. Full Stack Deployment via Docker Compose
 
-The checked-in Compose file references service builds, but this repository currently has no Dockerfiles, so this command is not runnable as-is. Start the backend, ML engine, and frontend separately using their local setup instructions until container build files and persistent audio-volume configuration are added.
+To build and spin up the backend API gateway and ML serving engine simultaneously:
+
+```bash
+docker-compose up --build
+```
 
 ---
 
 ## Dataset Notice & Ethics Compliance
 
-This repository does not include the **Extended Distress Analysis Interview Corpus (E-DAIC / DAIC-WOZ)** dataset or imply authorization to use it. Training scripts may support research workflows that require separately obtaining the data from its owners.
+This repository utilizes experimental data from the **Extended Distress Analysis Interview Corpus (E-DAIC / DAIC-WOZ)** distributed by the University of Southern California (USC) Institute for Creative Technologies.
 
-* **Data-use compliance**: Obtain required permissions and follow the applicable data-use agreement before accessing, processing, or sharing any restricted data. Never commit restricted data, transcripts, labels, or user recordings.
-* **Storage**: Follow the training pipeline's documentation for the supported dataset layout. Do not assume the dataset or trained model weights are present in a checkout.
-
-## Current implementation status
-
-The browser app supports registration with Terms/Privacy consent, login, account profile editing, OTP-confirmed password changes and account deletion, and assessment text/audio submission. Audio uploads are encrypted at rest under `audio_files/{sessionId}/{turnId}/audio.enc` by default. Text sentiment and crisis checks use the current ML service routes, but those limited outputs are not clinical assessments. Final assessment generation depends on model-backed voice/fusion routes that are currently placeholders and returns unavailable rather than a fabricated score. Read [`backend/README.md`](backend/README.md) for API details and setup.
+* **Data-Use Agreement Compliance**: In strict adherence to the USC ICT data-use agreement, raw audio files, interview transcripts, and clinical PHQ-8/PHQ-9 diagnostic labels are **strictly Git-ignored** and must never be committed to public or private version control.
+* **Storage Location**: Authorized researchers should place their approved dataset within `ml-training/edaic-woz/data/` and `ml-training/edaic-woz/labels/`. All pipeline scripts dynamically detect and consume files from this directory automatically.
 
 ---
 

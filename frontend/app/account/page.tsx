@@ -75,7 +75,7 @@ export default function AccountPage() {
       } catch (cause) {
         if (!active) return;
         if (cause instanceof ApiError && [401, 403].includes(cause.status)) {
-          router.replace("/login");
+          router.replace(cause instanceof ApiError && cause.status === 401 && tokenManager.hasAuthenticatedSession() ? "/login?sessionExpired=1" : "/login");
         } else {
           setError(cause instanceof Error ? cause.message : "Could not load your account.");
         }
@@ -139,7 +139,7 @@ export default function AccountPage() {
     setNotice("");
     try {
       await accountApi.changePassword(currentPassword, newPassword, otp);
-      tokenManager.clearTokens();
+      tokenManager.clearSession();
       router.replace("/login?message=password-updated");
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Could not change your password.");
@@ -155,7 +155,7 @@ export default function AccountPage() {
     setNotice("");
     try {
       await accountApi.deleteAccount(deletePassword, otp);
-      tokenManager.clearTokens();
+      tokenManager.clearSession();
       router.replace("/");
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Could not delete your account.");

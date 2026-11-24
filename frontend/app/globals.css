@@ -458,6 +458,18 @@ body {
   line-height: 1.55;
 }
 
+.auth-error {
+  margin: -8px 0 24px;
+  padding: 13px 15px;
+  border: 1px solid rgba(248, 113, 113, 0.3);
+  border-radius: 12px;
+  background: rgba(220, 38, 38, 0.1);
+  color: #fca5a5;
+  font-family: var(--font-body), sans-serif;
+  font-size: 0.83rem;
+  line-height: 1.55;
+}
+
 .auth-privacy-note {
   display: flex;
   align-items: center;
@@ -1254,4 +1266,482 @@ body {
 @keyframes typing-bounce {
   0%, 80%, 100% { transform: scale(0); }
   40%           { transform: scale(1); }
+}
+
+.history-chat,
+.session-list,
+.assessment-transcript {
+  margin-top: 30px;
+  padding-top: 24px;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.history-chat-messages,
+.assessment-transcript {
+  display: grid;
+  gap: 16px;
+}
+
+.chat-message {
+  max-width: 88%;
+  padding: 15px 17px;
+  border-radius: 16px;
+}
+
+.chat-message-assistant {
+  justify-self: start;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.055);
+}
+
+.chat-message-user {
+  justify-self: end;
+  border: 1px solid rgba(201, 169, 110, 0.3);
+  background: rgba(201, 169, 110, 0.12);
+}
+
+.chat-message-label {
+  display: block;
+  margin-bottom: 7px;
+  color: var(--color-accent-light);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.chat-message p {
+  color: rgba(240, 237, 232, 0.88);
+  font-size: 0.91rem;
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+}
+
+.history-chat-form {
+  display: grid;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.history-chat-form .service-home-button,
+.assessment-form .service-home-button {
+  justify-self: end;
+}
+
+.session-list h2,
+.transcript-heading {
+  margin-bottom: 16px;
+  color: var(--color-text);
+  font-family: var(--font-heading), Georgia, serif;
+  font-size: 1.8rem;
+  font-weight: 400;
+}
+
+.session-list-items {
+  display: grid;
+  gap: 10px;
+}
+
+.session-list-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.035);
+  transition: border-color 180ms ease, background 180ms ease;
+}
+
+.session-list-item:hover {
+  border-color: rgba(201, 169, 110, 0.55);
+  background: rgba(201, 169, 110, 0.07);
+}
+
+.session-list-link {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-width: 0;
+  padding: 16px;
+  color: var(--color-text);
+  text-decoration: none;
+}
+
+.session-list-item strong,
+.session-list-item small {
+  display: block;
+}
+
+.session-list-item small {
+  margin-top: 5px;
+  color: rgba(240, 237, 232, 0.58);
+  font-size: 0.76rem;
+}
+
+.session-list-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--color-accent-light);
+  font-size: 0.78rem;
+  text-transform: capitalize;
+}
+
+.session-actions-menu {
+  position: relative;
+  flex: 0 0 auto;
+  margin-right: 12px;
+}
+
+.session-actions-menu > summary {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 50%;
+  color: rgba(240, 237, 232, 0.8);
+  font-size: 1.4rem;
+  line-height: 1;
+  list-style: none;
+  cursor: pointer;
+}
+
+.session-actions-menu > summary::-webkit-details-marker {
+  display: none;
+}
+
+.session-actions-menu[open] > summary,
+.session-actions-menu > summary:hover {
+  border-color: rgba(201, 169, 110, 0.6);
+  color: var(--color-accent-light);
+}
+
+.session-actions-popover {
+  position: absolute;
+  z-index: 3;
+  top: calc(100% + 7px);
+  right: 0;
+  min-width: 160px;
+  padding: 5px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 10px;
+  background: #171614;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.45);
+}
+
+.session-delete-action,
+.session-abandon-action {
+  width: 100%;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: #fecaca;
+  font: inherit;
+  font-size: 0.82rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.session-abandon-action {
+  color: var(--color-accent-light);
+}
+
+.session-delete-action:hover {
+  background: rgba(248, 113, 113, 0.12);
+}
+
+.session-abandon-action:hover {
+  background: rgba(201, 169, 110, 0.12);
+}
+
+.session-delete-action:disabled,
+.session-abandon-action:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}
+
+.app-back-button {
+  color: var(--color-accent-light);
+  font-family: var(--font-body), sans-serif;
+  font-size: 0.82rem;
+  text-decoration: none;
+}
+
+.app-back-button:hover {
+  text-decoration: underline;
+}
+
+.transcript-turn {
+  display: grid;
+  gap: 10px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.assessment-transcript .transcript-heading {
+  margin-bottom: 0;
+}
+
+.assessment-question {
+  display: block;
+  margin-top: 28px;
+  padding: 16px 18px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.055);
+}
+
+.assessment-question .history-help {
+  margin-top: 10px;
+}
+
+.assessment-form {
+  display: grid;
+  gap: 12px;
+}
+
+.assessment-form .history-textarea {
+  min-height: 84px;
+}
+
+.assessment-composer {
+  display: grid;
+  gap: 8px;
+  margin-top: 26px;
+  padding: 12px 14px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 20px;
+  background: rgba(18, 18, 18, 0.82);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.22);
+}
+
+.composer-textarea {
+  width: 100%;
+  min-height: 48px;
+  max-height: 180px;
+  padding: 8px 4px;
+  resize: vertical;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--color-text);
+  font: inherit;
+  line-height: 1.5;
+}
+
+.composer-textarea::placeholder {
+  color: rgba(240, 237, 232, 0.48);
+}
+
+.composer-textarea:disabled {
+  opacity: 0.7;
+}
+
+.composer-toolbar,
+.composer-tools {
+  display: flex;
+  align-items: center;
+}
+
+.composer-toolbar {
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.composer-tools {
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.composer-icon-button,
+.composer-send-button {
+  display: inline-flex;
+  width: 40px;
+  height: 40px;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--color-text);
+  font: inherit;
+  font-size: 1.2rem;
+  cursor: pointer;
+}
+
+.composer-icon-button:hover {
+  border-color: rgba(201, 169, 110, 0.6);
+  color: var(--color-accent-light);
+}
+
+.composer-icon-button svg {
+  width: 19px;
+  height: 19px;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.7;
+}
+
+.composer-icon-button:disabled,
+.composer-send-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.composer-send-button {
+  border-color: transparent;
+  background: var(--color-accent);
+  color: #14110c;
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.composer-file-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  clip-path: inset(50%);
+}
+
+.composer-hint {
+  margin: 0;
+  color: rgba(240, 237, 232, 0.48);
+  font-size: 0.72rem;
+}
+
+.assessment-composer .audio-preview {
+  margin: 0 0 4px;
+}
+
+.assessment-composer .service-error {
+  margin: 4px 0 0;
+}
+
+.audio-record-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-top: 6px;
+}
+
+.audio-record-button,
+.audio-stop-button,
+.audio-discard-button {
+  display: inline-flex;
+  min-height: 42px;
+  align-items: center;
+  gap: 9px;
+  padding: 0 15px;
+  border: 1px solid rgba(201, 169, 110, 0.45);
+  border-radius: 999px;
+  background: rgba(201, 169, 110, 0.08);
+  color: var(--color-accent-light);
+  font: inherit;
+  font-size: 0.82rem;
+  cursor: pointer;
+}
+
+.audio-stop-button {
+  border-color: rgba(248, 113, 113, 0.5);
+  background: rgba(127, 29, 29, 0.2);
+  color: #fecaca;
+}
+
+.audio-record-button:disabled,
+.audio-stop-button:disabled,
+.audio-discard-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.audio-record-dot,
+.audio-recording-pulse {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #ef7373;
+}
+
+.audio-recording-pulse {
+  animation: recording-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes recording-pulse {
+  50% { opacity: 0.35; transform: scale(0.78); }
+}
+
+.audio-recording-label {
+  color: #fecaca;
+  font-size: 0.78rem;
+}
+
+.audio-preview {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(240, 237, 232, 0.75);
+  font-size: 0.8rem;
+  overflow-wrap: anywhere;
+}
+
+.audio-preview audio {
+  width: 100%;
+  max-width: 420px;
+  height: 42px;
+}
+
+.audio-discard-button {
+  justify-self: start;
+  min-height: 34px;
+  padding: 0 11px;
+  border-color: rgba(248, 113, 113, 0.35);
+  color: #fecaca;
+  font-size: 0.75rem;
+}
+
+.session-abandon-button {
+  padding: 8px 13px;
+  border: 1px solid rgba(248, 113, 113, 0.45);
+  border-radius: 999px;
+  background: rgba(127, 29, 29, 0.16);
+  color: #fecaca;
+  font: inherit;
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+
+.session-abandon-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+@media (max-width: 600px) {
+  .chat-message {
+    max-width: 100%;
+  }
+
+  .session-list-item {
+    align-items: flex-start;
+  }
+
+  .session-list-link {
+    align-items: flex-start;
+  }
+
+  .session-list-status {
+    text-align: right;
+  }
 }

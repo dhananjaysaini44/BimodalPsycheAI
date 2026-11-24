@@ -2,11 +2,13 @@ package com.bimodalpsyche.backend.session.controller;
 
 import com.bimodalpsyche.backend.session.service.AssessmentSessionService;
 import com.bimodalpsyche.backend.session.service.AssessmentSessionService.SessionResponse;
+import com.bimodalpsyche.backend.session.service.SessionDeletionService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -16,9 +18,13 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/session")
 public class AssessmentSessionController {
     private final AssessmentSessionService sessionService;
+    private final SessionDeletionService sessionDeletionService;
 
-    public AssessmentSessionController(AssessmentSessionService sessionService) {
+    public AssessmentSessionController(
+            AssessmentSessionService sessionService,
+            SessionDeletionService sessionDeletionService) {
         this.sessionService = sessionService;
+        this.sessionDeletionService = sessionDeletionService;
     }
 
     @PostMapping("/start")
@@ -31,6 +37,11 @@ public class AssessmentSessionController {
         return sessionService.findUnfinished(user.getUsername())
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.noContent().build());
+    }
+
+    @GetMapping
+    public java.util.List<SessionResponse> findAll(@AuthenticationPrincipal UserDetails user) {
+        return sessionService.findAll(user.getUsername());
     }
 
     @GetMapping("/{sessionId}")
@@ -59,5 +70,13 @@ public class AssessmentSessionController {
             @PathVariable Long sessionId,
             @AuthenticationPrincipal UserDetails user) {
         return sessionService.abandon(sessionId, user.getUsername());
+    }
+
+    @DeleteMapping("/{sessionId}")
+    public ResponseEntity<Void> delete(
+            @PathVariable Long sessionId,
+            @AuthenticationPrincipal UserDetails user) {
+        sessionDeletionService.delete(sessionId, user.getUsername());
+        return ResponseEntity.noContent().build();
     }
 }

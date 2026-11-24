@@ -2,13 +2,14 @@
 
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ApiError, authApi, sessionApi, tokenManager } from "@/lib/api";
 import type {
   AssessmentResponse,
   CrisisResource,
   NextQuestionResponse,
   SessionResponse,
+  TurnHistoryResponse,
   TurnResponse,
 } from "@/lib/api";
 
@@ -18,8 +19,17 @@ export default function AssessmentPage() {
   const sessionId = Number(params.sessionId);
   const [session, setSession] = useState<SessionResponse | null>(null);
   const [question, setQuestion] = useState<NextQuestionResponse["question"]>(null);
+  const [turns, setTurns] = useState<TurnHistoryResponse[]>([]);
   const [responseText, setResponseText] = useState("");
   const [audioFile, setAudioFile] = useState<File | null>(null);
+  const [audioPreviewUrl, setAudioPreviewUrl] = useState<string | null>(null);
+  const [isRecording, setIsRecording] = useState(false);
+  const [isStartingRecording, setIsStartingRecording] = useState(false);
+  const [recordingError, setRecordingError] = useState("");
+  const audioPreviewUrlRef = useRef<string | null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const mediaStreamRef = useRef<MediaStream | null>(null);
+  const recordingChunksRef = useRef<Blob[]>([]);
   const [crisis, setCrisis] = useState<{ guidance: string; resources: CrisisResource[] } | null>(null);
   const [result, setResult] = useState<AssessmentResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -44,6 +54,107 @@ export default function AssessmentPage() {
     }
   }, [sessionId]);
 
+  const loadTurns = useCallback(async () => {
+    setTurns(await sessionApi.getTurns(sessionId));
+  }, [sessionId]);
+
+  useEffect(() => () => {
+    const recorder = mediaRecorderRef.current;
+    if (recorder && recorder.state !== "inactive") {
+      recorder.ondataavailable = null;
+      recorder.onstop = null;
+      recorder.stop();
+    }
+    mediaStreamRef.current?.getTracks().forEach((track) => track.stop());
+    if (audioPreviewUrlRef.current) URL.revokeObjectURL(audioPreviewUrlRef.current);
+  }, []);
+
+  function chooseAudioFile(file: File | null) {
+    if (audioPreviewUrlRef.current) URL.revokeObjectURL(audioPreviewUrlRef.current);
+    audioPreviewUrlRef.current = file ? URL.createObjectURL(file) : null;
+    setAudioPreviewUrl(audioPreviewUrlRef.current);
+    setAudioFile(file);
+  }
+
+  async function startRecording() {
+    setRecordingError("");
+    setError("");
+    if (!window.isSecureContext) {
+      setRecordingError("Microphone recording requires a secure page. Open this site using HTTPS or localhost.");
+      return;
+    }
+    if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === "undefined") {
+      setRecordingError("Audio recording isn’t supported by this browser. Please choose an audio file instead.");
+      return;
+    }
+
+    let stream: MediaStream | null = null;
+    setIsStartingRecording(true);
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({
+        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+      });
+      if (!stream.getAudioTracks().some((track) => track.readyState === "live")) {
+        throw new Error("No active microphone was found. Check your microphone and try again.");
+      }
+      const supportedTypes = ["audio/webm;codecs=opus", "audio/webm", "audio/ogg;codecs=opus", "audio/mp4"];
+      const mimeType = supportedTypes.find((type) => MediaRecorder.isTypeSupported(type));
+      const recorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
+      mediaStreamRef.current = stream;
+      mediaRecorderRef.current = recorder;
+      recordingChunksRef.current = [];
+      recorder.ondataavailable = (event) => {
+        if (event.data.size > 0) recordingChunksRef.current.push(event.data);
+      };
+      recorder.onerror = () => {
+        setRecordingError("Recording failed. Please try again or choose an audio file.");
+        setIsRecording(false);
+        recorder.onstop = null;
+        if (recorder.state !== "inactive") {
+          try {
+            recorder.stop();
+          } catch {
+            // The recorder can already be stopped when the error event fires.
+          }
+        }
+        stream?.getTracks().forEach((track) => track.stop());
+        mediaStreamRef.current = null;
+        mediaRecorderRef.current = null;
+      };
+      recorder.onstop = () => {
+        const type = recorder.mimeType || recordingChunksRef.current[0]?.type || "audio/webm";
+        const blob = new Blob(recordingChunksRef.current, { type });
+        const extension = type.includes("ogg") ? "ogg" : type.includes("mp4") ? "mp4" : "webm";
+        if (blob.size > 0) chooseAudioFile(new File([blob], `recording-${Date.now()}.${extension}`, { type }));
+        else setRecordingError("No audio was captured. Please record again.");
+        stream?.getTracks().forEach((track) => track.stop());
+        mediaStreamRef.current = null;
+        mediaRecorderRef.current = null;
+        setIsRecording(false);
+      };
+      recorder.start(1000);
+      chooseAudioFile(null);
+      setIsRecording(true);
+    } catch (cause) {
+      stream?.getTracks().forEach((track) => track.stop());
+      mediaStreamRef.current = null;
+      setRecordingError(cause instanceof Error && cause.name === "NotAllowedError"
+        ? "Microphone access was denied. Allow microphone access in your browser or choose an audio file."
+        : cause instanceof Error ? cause.message : "Could not start recording. Please choose an audio file instead.");
+    } finally {
+      setIsStartingRecording(false);
+    }
+  }
+
+  function stopRecording() {
+    const recorder = mediaRecorderRef.current;
+    if (recorder && recorder.state === "recording") recorder.stop();
+  }
+
+  function submitResponse(event: { preventDefault(): void }) {
+    return audioFile ? submitAudio(event) : submitText(event);
+  }
+
   useEffect(() => {
     let active = true;
 
@@ -62,6 +173,7 @@ export default function AssessmentPage() {
         const currentSession = await sessionApi.get(sessionId);
         if (!active) return;
         setSession(currentSession);
+        await loadTurns();
 
         if (currentSession.status === "IN_PROGRESS") {
           await loadNextQuestion();
@@ -71,7 +183,7 @@ export default function AssessmentPage() {
       } catch (cause) {
         if (!active) return;
         if (cause instanceof ApiError && cause.status === 401) {
-          router.replace("/login");
+          router.replace(cause instanceof ApiError && cause.status === 401 && tokenManager.hasAuthenticatedSession() ? "/login?sessionExpired=1" : "/login");
           return;
         }
         setError(cause instanceof Error ? cause.message : "Could not load this assessment session.");
@@ -84,7 +196,7 @@ export default function AssessmentPage() {
     return () => {
       active = false;
     };
-  }, [loadAssessment, loadNextQuestion, router, sessionId]);
+  }, [loadAssessment, loadNextQuestion, loadTurns, router, sessionId]);
 
   async function submitText(event: { preventDefault(): void }) {
     event.preventDefault();
@@ -93,8 +205,22 @@ export default function AssessmentPage() {
     setError("");
     setNotice("");
     try {
-      const submitted: TurnResponse = await sessionApi.submitText(sessionId, question.id, responseText.trim());
+      const submittedText = responseText.trim();
+      const submitted: TurnResponse = await sessionApi.submitText(sessionId, question.id, submittedText);
       setResponseText("");
+      setTurns((current) => [...current, {
+        id: submitted.id,
+        turnNumber: submitted.turnNumber,
+        questionText: submitted.questionText,
+        responseType: "TEXT",
+        responseText: submittedText,
+        audio: null,
+        sentimentScore: submitted.sentimentScore,
+        crisisDetected: submitted.crisisDetected,
+        crisisGuidance: submitted.crisisGuidance,
+        crisisResources: submitted.crisisResources,
+        createdAt: submitted.createdAt,
+      }]);
       setSession((current) => current ? { ...current, currentTurnNumber: submitted.turnNumber } : current);
       if (submitted.crisisDetected) {
         setCrisis({
@@ -124,12 +250,49 @@ export default function AssessmentPage() {
     setNotice("");
     try {
       const uploaded = await sessionApi.submitAudio(sessionId, question.id, audioFile);
-      setAudioFile(null);
+      chooseAudioFile(null);
+      setTurns((current) => [...current, {
+        id: uploaded.turnId,
+        turnNumber: uploaded.turnNumber,
+        questionText: uploaded.questionText,
+        responseType: "AUDIO",
+        responseText: null,
+        audio: {
+          id: uploaded.audioId,
+          filename: uploaded.filename,
+          mimeType: uploaded.mimeType,
+          sizeBytes: uploaded.sizeBytes,
+        },
+        sentimentScore: null,
+        crisisDetected: false,
+        crisisGuidance: null,
+        crisisResources: [],
+        createdAt: uploaded.createdAt,
+      }]);
       setSession((current) => current ? { ...current, currentTurnNumber: uploaded.turnNumber } : current);
       setNotice(`Audio saved securely. Analysis status: ${uploaded.analysisStatus}.`);
       await loadNextQuestion();
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Your audio could not be saved. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  async function abandonSession() {
+    if (!session || !["DRAFT", "IN_PROGRESS", "PAUSED"].includes(session.status)) return;
+    if (!window.confirm("Abandon this assessment? You won’t be able to continue it, but its conversation will remain in your session history.")) return;
+    setIsSubmitting(true);
+    setError("");
+    setNotice("");
+    try {
+      const abandoned = await sessionApi.abandon(sessionId);
+      setSession(abandoned);
+      setQuestion(null);
+      setCrisis(null);
+      setNotice("Session abandoned. Its conversation is still available from your dashboard.");
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Could not abandon this session.");
     } finally {
       setIsSubmitting(false);
     }
@@ -192,7 +355,12 @@ export default function AssessmentPage() {
         <Link href="/" className="auth-brand" aria-label="PsycheAI home">
           <span className="auth-brand-mark" aria-hidden="true">Ψ</span><span>PsycheAI</span>
         </Link>
-        <Link href="/dashboard" className="auth-home-link">Dashboard</Link>
+        <div className="service-topbar-actions">
+          {session && ["DRAFT", "IN_PROGRESS", "PAUSED"].includes(session.status) && (
+            <button type="button" className="session-abandon-button" onClick={() => void abandonSession()} disabled={isSubmitting || isGenerating}>Abandon session</button>
+          )}
+          <Link href="/dashboard" className="app-back-button">← Back to sessions</Link>
+        </div>
       </header>
 
       <section className="service-card assessment-card">
@@ -239,42 +407,83 @@ export default function AssessmentPage() {
           </section>
         )}
 
+        {turns.length > 0 && (
+          <section className="assessment-transcript" aria-label="Session conversation">
+            <h2 className="transcript-heading">Conversation</h2>
+            {turns.map((turn) => (
+              <div className="transcript-turn" key={turn.id}>
+                <div className="chat-message chat-message-assistant">
+                  <span className="chat-message-label">PsycheAI · Question {turn.turnNumber}</span>
+                  <p>{turn.questionText}</p>
+                </div>
+                <div className="chat-message chat-message-user">
+                  <span className="chat-message-label">You</span>
+                  <p>{turn.responseType === "TEXT" ? turn.responseText : `Audio response${turn.audio?.filename ? ` · ${turn.audio.filename}` : ""}`}</p>
+                </div>
+              </div>
+            ))}
+          </section>
+        )}
+
         {!result && session?.status === "IN_PROGRESS" && question && !crisis && (
           <>
-            <div className="assessment-question">
-              <p className="assessment-kicker">{question.themeName} · {question.variantType.toLowerCase()} question</p>
-              <h2>{question.questionText}</h2>
-              <p className="history-help">Response {session.currentTurnNumber + 1}. Choose text or upload an audio response.</p>
+            <div className="assessment-question chat-message chat-message-assistant">
+              <span className="chat-message-label">PsycheAI · {question.themeName} · {question.variantType.toLowerCase()}</span>
+              <p>{question.questionText}</p>
+              <p className="history-help">Response {session.currentTurnNumber + 1}. Share only what you feel comfortable sharing.</p>
             </div>
-            <form className="assessment-form" onSubmit={(event) => void submitText(event)}>
-              <label className="history-label" htmlFor="response-text">Write a response</label>
+            <form className="assessment-composer" onSubmit={(event) => void submitResponse(event)}>
+              {audioFile && (
+                <div className="audio-preview">
+                  <span>{audioFile.name} · {(audioFile.size / (1024 * 1024)).toFixed(2)} MB</span>
+                  {audioPreviewUrl && <audio controls src={audioPreviewUrl} />}
+                  <button type="button" className="audio-discard-button" onClick={() => chooseAudioFile(null)} disabled={isSubmitting || isRecording}>Remove audio</button>
+                </div>
+              )}
               <textarea
                 id="response-text"
-                className="history-textarea"
+                className="composer-textarea"
                 value={responseText}
                 onChange={(event) => setResponseText(event.target.value)}
                 maxLength={10000}
-                rows={5}
-                required
-                placeholder="Share only what you feel comfortable sharing."
+                rows={2}
+                disabled={isSubmitting || isRecording}
+                placeholder={isRecording ? "Recording audio…" : "Message PsycheAI…"}
               />
-              <button type="submit" className="service-home-button" disabled={isSubmitting || !responseText.trim()}>
-                {isSubmitting ? "Saving response…" : "Send text response"}
-              </button>
-            </form>
-            <form className="assessment-form" onSubmit={(event) => void submitAudio(event)}>
-              <label className="history-label" htmlFor="audio-response">Or upload an audio response</label>
-              <p className="history-help">WAV, WebM, MP3, MP4, OGG, or AAC, up to 25 MB.</p>
+              <div className="composer-toolbar">
+                <div className="composer-tools">
+                  <label className="composer-icon-button" htmlFor="audio-response" title="Attach an audio file" aria-label="Attach an audio file">
+                    <span aria-hidden="true">＋</span>
+                  </label>
+                  {!isRecording ? (
+                    <button type="button" className="composer-icon-button" onClick={() => void startRecording()} disabled={isSubmitting || isStartingRecording} title="Record audio" aria-label="Record audio">
+                      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="9" y="3" width="6" height="12" rx="3" /><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3m-4 0h8" /></svg>
+                    </button>
+                  ) : (
+                    <button type="button" className="audio-stop-button" onClick={stopRecording} title="Stop recording">
+                      <span className="audio-recording-pulse" aria-hidden="true" /> Stop
+                    </button>
+                  )}
+                  {isStartingRecording && <span className="audio-recording-label" role="status">Starting microphone…</span>}
+                  {isRecording && <span className="audio-recording-label" role="status">Recording…</span>}
+                </div>
+                <button type="submit" className="composer-send-button" disabled={isSubmitting || isRecording || (!audioFile && !responseText.trim())} aria-label={isSubmitting ? "Sending response" : "Send response"}>
+                  {isSubmitting ? "…" : "↑"}
+                </button>
+              </div>
+              <p className="composer-hint">Type a message, attach an audio file, or record a voice response.</p>
+              {recordingError && <p className="service-error" role="alert">{recordingError}</p>}
               <input
                 id="audio-response"
-                className="assessment-file-input"
+                className="composer-file-input"
                 type="file"
+                disabled={isSubmitting || isRecording || isStartingRecording}
                 accept="audio/wav,audio/webm,audio/mpeg,audio/mp4,audio/ogg,audio/aac,.wav,.webm,.mp3,.mp4,.ogg,.aac"
-                onChange={(event) => setAudioFile(event.target.files?.[0] ?? null)}
+                onChange={(event) => {
+                  chooseAudioFile(event.target.files?.[0] ?? null);
+                  setRecordingError("");
+                }}
               />
-              <button type="submit" className="service-home-button" disabled={isSubmitting || !audioFile}>
-                {isSubmitting ? "Uploading audio…" : "Upload audio response"}
-              </button>
             </form>
           </>
         )}
