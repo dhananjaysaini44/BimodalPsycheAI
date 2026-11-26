@@ -8,41 +8,56 @@ import com.bimodalpsyche.backend.user.exception.UserAlreadyExistsException;
 import com.bimodalpsyche.backend.user.model.Role;
 import com.bimodalpsyche.backend.user.model.User;
 import com.bimodalpsyche.backend.user.repository.UserRepository;
-import jakarta.validation.Valid;
+import jakarta.transaction.Transactional;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
+
 @Service
 public class UserService implements UserDetailsService {
 
-    private PasswordEncoder passwordEncoder;
-    private UserRepository userRepository;
-    private OtpVerificationRepository otpVerificationRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final UserRepository userRepository;
+    private final OtpVerificationRepository otpVerificationRepository;
+    private final String termsVersion;
+    private final String privacyPolicyVersion;
 
-    public UserService(PasswordEncoder passwordEncoder, UserRepository userRepository, OtpVerificationRepository otpVerificationRepository) {
+    public UserService(
+            PasswordEncoder passwordEncoder,
+            UserRepository userRepository,
+            OtpVerificationRepository otpVerificationRepository,
+            @Value("${app.legal.terms-version}") String termsVersion,
+            @Value("${app.legal.privacy-policy-version}") String privacyPolicyVersion) {
         this.otpVerificationRepository = otpVerificationRepository;
         this.passwordEncoder = passwordEncoder;
         this.userRepository = userRepository;
+        this.termsVersion = termsVersion;
+        this.privacyPolicyVersion = privacyPolicyVersion;
     }
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        return userRepository.findByEmail(username).orElseThrow(() -> new UsernameNotFoundException("User not found with email: " + username));
+        return userRepository.findByEmail(username).orElseThrow(() -> new UsernameNotFoundException("User not found"));
     }
 
-    public void register(@Valid RegisterRequest registerRequest) {
-        User user=userRepository.findByEmail(registerRequest.getEmail()).orElse(null);
-        if(user!=null) throw new UserAlreadyExistsException("User already exists");
+    @Transactional
+    public void register(RegisterRequest registerRequest) {
+        if(userRepository.findByEmail(registerRequest.getEmail()).isPresent())
+            throw new UserAlreadyExistsException("User already exists");
 
-        OtpVerification verification=otpVerificationRepository.findByEmail(registerRequest.getEmail()).orElse(null);
-        if(verification==null) throw new EmailNotVerifiedException("Email not verified");
+        OtpVerification verification=otpVerificationRepository.findByEmail(registerRequest.getEmail())
+                .orElseThrow(()->new EmailNotVerifiedException("Email not verified"));
 
-        if(!verification.isVerified()) throw new EmailNotVerifiedException("Email not verified");
+        // Verification is only honoured for a short window after the OTP was confirmed
+        if(!verification.isVerified() || verification.getExpiryTime().isBefore(LocalDateTime.now()))
+            throw new EmailNotVerifiedException("Email not verified");
 
-        user=new User();
+        User user=new User();
 
         user.setEmail(registerRequest.getEmail());
         user.setPassword(passwordEncoder.encode(registerRequest.getPassword()));
@@ -56,6 +71,13 @@ public class UserService implements UserDetailsService {
         user.setPhoneNumber(registerRequest.getPhoneNumber());
         user.setWorkingHoursPerWeek(registerRequest.getWorkingHoursPerWeek());
 
+        LocalDateTime consentAcceptedAt = LocalDateTime.now();
+        user.setConsentAcceptedAt(consentAcceptedAt);
+        user.setTermsVersion(termsVersion);
+        user.setTermsAcceptedAt(consentAcceptedAt);
+        user.setPrivacyPolicyVersion(privacyPolicyVersion);
+        user.setPrivacyPolicyAcceptedAt(consentAcceptedAt);
+
         user.setEmailVerified(true);
         user.setRole(Role.ROLE_USER);
 
@@ -63,6 +85,8 @@ public class UserService implements UserDetailsService {
         user.setFamilyHistoryCompleted(false);
 
         userRepository.save(user);
+        // One verification = one registration
+        otpVerificationRepository.delete(verification);
     }
 
 }

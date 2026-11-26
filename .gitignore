@@ -51,3 +51,86 @@ __pycache__/
 
 # Logs
 *.log
+# Additional environment files and safe examples
+.env.development
+.env.production
+.env.*
+!.env.example
+!.env.sample
+!.env.template
+.env.*.local
+!.env.example.*
+!.env.sample.*
+
+# Additional audio storage locations
+audio_files/
+backend/audio_files/
+data/audio/
+backend/data/audio/
+
+# Node.js / Next.js build artifacts
+.next/
+out/
+.vercel/
+.turbo/
+build/
+
+# Python virtual environments
+**/.venv/
+**/venv/
+
+# Temporary files
+*.tmp
+*.temp
+*.swp
+*.swo
+*.bak
+
+# Operating-system metadata
+.DS_Store
+.AppleDouble
+.LSOverride
+Thumbs.db
+Desktop.ini
+
+# IntelliJ IDEA local workspace files
+**/.idea/shelf/
+**/.idea/workspace.xml
+**/.idea/httpRequests/
+**/.idea/queries/
+**/.idea/dataSources/
+**/.idea/dataSources.local.xml
+
+# Java / Maven and IDE metadata
+.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+HELP.md
+
+### STS ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+
+### IntelliJ IDEA ###
+.idea
+*.iws
+*.iml
+*.ipr
+
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+build/
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+### VS Code ###
+.vscode/

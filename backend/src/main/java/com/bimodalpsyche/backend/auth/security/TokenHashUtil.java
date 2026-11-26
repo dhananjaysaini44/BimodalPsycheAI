@@ -26,4 +26,13 @@ public class TokenHashUtil {
             throw new RuntimeException("SHA-256 algorithm not available", e);
         }
     }
+
+    // Constant-time comparison so response timing doesn't leak how much of the hash matched
+    public static boolean matches(String rawToken, String storedHash) {
+        if (rawToken == null || storedHash == null) return false;
+        return MessageDigest.isEqual(
+                hash(rawToken).getBytes(StandardCharsets.UTF_8),
+                storedHash.getBytes(StandardCharsets.UTF_8)
+        );
+    }
 }
